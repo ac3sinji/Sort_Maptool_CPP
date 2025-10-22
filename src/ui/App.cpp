@@ -1,0 +1,349 @@
+﻿// ========================= src/ui/App.cpp =========================
+#include "App.hpp"
+#include <SDL.h>
+#include "imgui.h"
+#include "backends/imgui_impl_sdl2.h"
+#include "backends/imgui_impl_sdlrenderer2.h"
+#include <algorithm> // for std::clamp
+#include <filesystem> // for font path existence check
+
+namespace ws {
+
+    AppUI::AppUI() :p{ 6,8,4 }, opt{}, gen(p, opt) {
+        tpl.p = p;
+        tpl.B.resize(p.numBottles);
+        for (auto& b : tpl.B) b.capacity = p.capacity;
+    }
+
+    void AppUI::ensureIndex(int idx) { if (idx >= 0 && idx < (int)generated.size()) currentIndex = idx; }
+
+    void AppUI::drawTopBar() {
+        ImGui::Begin("Controls");
+        ImGui::Text("Params");
+        ImGui::SliderInt("Colors", &p.numColors, 1, 18);
+        ImGui::SliderInt("Bottles", &p.numBottles, 3, 30);
+        ImGui::SliderInt("Capacity", &p.capacity, 3, 50);
+        ImGui::Separator();
+        ImGui::Text("Generator");
+        ImGui::SliderInt("Mix min", &opt.mixMin, 10, 300);
+        ImGui::SliderInt("Mix max", &opt.mixMax, opt.mixMin, 400);
+        ImGui::SliderInt("Solve ms", &opt.solveTimeMs, 200, 5000);
+        ImGui::SliderInt("Count (N)", &NtoGenerate, 1, 50);
+        ImGui::Separator();
+        ImGui::Text("Start State");
+        ImGui::Checkbox("Start mixed (random deal)", &opt.startMixed);
+        ImGui::BeginDisabled(!opt.startMixed);
+        ImGui::SliderInt("Reserved empty bottles", &opt.reservedEmpty, 0, std::max(0, p.numBottles - 1));
+        ImGui::SliderInt("Max same-color run", &opt.maxRunPerBottle, 0, p.capacity);
+        ImGui::EndDisabled(); bool pChanged = false;
+        pChanged |= ImGui::SliderInt("Colors", &p.numColors, 1, 18);
+        pChanged |= ImGui::SliderInt("Bottles", &p.numBottles, 3, 30);
+        pChanged |= ImGui::SliderInt("Capacity", &p.capacity, 3, 50);
+        if (pChanged) syncTemplateWithParams();
+
+        ImGui::Checkbox("Use template on generate", &useTemplate);
+        ImGui::SliderInt("Max same-color run", &opt.maxRunPerBottle, 0, p.capacity);
+
+        long long sumH = 0; for (const auto& b : tpl.B) sumH += (int)b.slots.size();
+        long long expected = 1ll * p.numColors * p.capacity;
+        if (useTemplate) {
+            if (sumH != expected)
+                ImGui::TextColored(ImVec4(1, 0.4f, 0.4f, 1), "Template sum %lld != Colors*Capacity %lld", sumH, expected);
+            else
+                ImGui::TextColored(ImVec4(0.6f, 1, 0.6f, 1), "Template OK (sum=%lld)", sumH);
+        }
+
+        if (ImGui::Button("Generate N")) {
+            gen = Generator(p, opt);
+            if (useTemplate) {
+                if (sumH == expected) {
+                    gen.setBase(tpl);               // 템플릿(높이+기믹) 전달
+                    for (int i = 0; i < NtoGenerate; ++i) {
+                        auto g = gen.makeOne(nullptr);
+                        if (g) generated.push_back(*g);
+                    }
+                } // sum이 안 맞으면 생성 안 함
+            }
+            else {
+                for (int i = 0; i < NtoGenerate; ++i) {
+                    auto g = gen.makeOne(nullptr);
+                    if (g) generated.push_back(*g);
+                }
+            }
+            if (currentIndex < 0 && !generated.empty()) currentIndex = 0;
+        }
+
+        ImGui::SameLine();
+        if (ImGui::Button("Clear In‑Memory")) { generated.clear(); currentIndex = -1; }
+
+        ImGui::Separator();
+        ImGui::InputText("Save CSV", savePath.data(), 256);
+        if (ImGui::Button("Save")) {
+            // append indices continuing from existing file if present
+            auto rowsExisting = CsvIO::load(savePath);
+            int startIdx = rowsExisting.empty() ? 0 : (rowsExisting.back().index + 1);
+            std::vector<CsvRow> rows;
+            for (size_t i = 0; i < generated.size(); ++i) {
+                const auto& g = generated[i];
+                rows.push_back(CsvIO::encode(startIdx + (int)i, g.state, g.mixCount, g.minMoves, g.diffScore, g.diffLabel));
+            }
+            CsvIO::save(savePath, rows, true);
+        }
+
+        ImGui::InputText("Load CSV", loadPath.data(), 256);
+        if (ImGui::Button("Load")) {
+            generated.clear(); currentIndex = -1;
+            auto rows = CsvIO::load(loadPath);
+            for (const auto& r : rows) {
+                State s; if (CsvIO::decode(r, s)) {
+                    Generated g; g.state = std::move(s); g.mixCount = r.MixCount; g.minMoves = r.MinMoves; g.diffScore = r.DifficultyScore; g.diffLabel = r.DifficultyLabel; generated.push_back(std::move(g));
+                }
+            }
+            if (!generated.empty()) currentIndex = 0;
+        }
+
+        ImGui::Separator();
+        ImGui::Text("View by index");
+        static int idxInput = 0; ImGui::InputInt("Map #", &idxInput);
+        if (ImGui::Button("Show")) ensureIndex(idxInput);
+
+        ImGui::End();
+    }
+
+    static ImU32 colorFor(Color c) {
+        static ImU32 table[21] = {
+            IM_COL32(40,40,40,255),
+            IM_COL32(230, 80, 80,255), IM_COL32(80,180,250,255), IM_COL32(90,200,120,255), IM_COL32(240,210,70,255),
+            IM_COL32(200,120,240,255), IM_COL32(255,160,120,255), IM_COL32(120,120,240,255), IM_COL32(90,160,160,255), IM_COL32(250,130,180,255),
+            IM_COL32(150,100,80,255), IM_COL32(100,150,100,255), IM_COL32(80,160,200,255), IM_COL32(200,80,200,255), IM_COL32(100,100,220,255),
+            IM_COL32(220,120,60,255), IM_COL32(160,220,60,255), IM_COL32(60,220,160,255), IM_COL32(60,160,220,255), IM_COL32(200,200,200,255),
+            IM_COL32(30,30,30,255)
+        };
+        if (c > 20) c = 20; return table[c];
+    }
+
+    void AppUI::drawViewer() {
+        ImGui::Begin("Viewer");
+        if (currentIndex < 0 || currentIndex >= (int)generated.size()) { ImGui::Text("No map selected"); ImGui::End(); return; }
+        const auto& g = generated[currentIndex];
+        const auto& s = g.state;
+
+        ImGui::Text("Mix=%d  MinMoves=%d  Diff=%.1f (%s)", g.mixCount, g.minMoves, g.diffScore, g.diffLabel.c_str());
+
+        // draw bottles
+        float cell = 18.0f; // cell height
+        float bottleW = 28.0f; float gap = 12.0f; float baseY = 80.0f;
+        ImDrawList* dl = ImGui::GetWindowDrawList();
+        ImVec2 origin = ImGui::GetCursorScreenPos();
+
+        for (size_t i = 0; i < s.B.size(); ++i) {
+            const auto& b = s.B[i];
+            float x = origin.x + i * (bottleW + gap);
+            float y = origin.y + baseY;
+            // outline
+            dl->AddRect(ImVec2(x, y - b.capacity * cell), ImVec2(x + bottleW, y), IM_COL32(200, 200, 200, 255));
+            // slots bottom->top
+            for (int k = 0; k < b.capacity; ++k) {
+                float yTop = y - (k + 1) * cell;
+                ImU32 col = IM_COL32(60, 60, 60, 255);
+                if (k < (int)b.slots.size()) {
+                    col = colorFor(b.slots[k].c);
+                    if (b.slots[k].hidden) col = IM_COL32(90, 90, 90, 255);
+                }
+                dl->AddRectFilled(ImVec2(x + 2, yTop + 2), ImVec2(x + bottleW - 2, yTop + cell - 2), col, 3.0f);
+            }
+            // gimmick badge
+            std::string badge = ""; auto kind = b.gimmick.kind;
+            if (kind == StackGimmickKind::Cloth) badge = "C(" + std::to_string((int)b.gimmick.clothTarget) + ")";
+            else if (kind == StackGimmickKind::Vine) badge = "V";
+            else if (kind == StackGimmickKind::Bush) badge = "B";
+            if (!badge.empty()) {
+                dl->AddText(ImVec2(x, y - b.capacity * cell - 16), IM_COL32(250, 220, 120, 255), badge.c_str());
+            }
+        }
+
+        ImGui::End();
+    }
+
+    void AppUI::drawEditor() {
+        ImGui::Begin("Editor (per bottle)");
+        if (currentIndex < 0 || currentIndex >= (int)generated.size()) { ImGui::Text("No map selected"); ImGui::End(); return; }
+        auto& s = generated[currentIndex].state;
+
+        static int selBottle = 0; selBottle = std::clamp(selBottle, 0, (int)s.B.size() - 1);
+        ImGui::SliderInt("Bottle", &selBottle, 0, (int)s.B.size() - 1);
+
+        auto& b = s.B[selBottle];
+        ImGui::Text("Capacity=%d  Size=%d", b.capacity, (int)b.slots.size());
+
+        // Gimmicks
+        int kind = (int)b.gimmick.kind;
+        if (ImGui::RadioButton("None", kind == 0)) kind = 0; ImGui::SameLine();
+        if (ImGui::RadioButton("Cloth", kind == 1)) kind = 1; ImGui::SameLine();
+        if (ImGui::RadioButton("Vine", kind == 2)) kind = 2; ImGui::SameLine();
+        if (ImGui::RadioButton("Bush", kind == 3)) kind = 3;
+        b.gimmick.kind = (StackGimmickKind)kind;
+        if (kind == 1) {
+            int ct = b.gimmick.clothTarget; if (ct < 1) ct = 1; if (ct > p.numColors) ct = p.numColors;
+            ImGui::SliderInt("Cloth Target Color", &ct, 1, p.numColors); b.gimmick.clothTarget = (Color)ct;
+        }
+
+        ImGui::Separator();
+        ImGui::Text("Paint / Edit Slots");
+        static int paintColor = 1; paintColor = std::clamp(paintColor, 1, p.numColors);
+        ImGui::SliderInt("Paint Color", &paintColor, 1, p.numColors);
+        if (ImGui::Button("Push Top")) {
+            if (b.size() < b.capacity) { b.slots.push_back(Slot{ (Color)paintColor,false }); s.refreshLocks(); }
+        }
+        ImGui::SameLine();
+        if (ImGui::Button("Pop Top")) {
+            if (b.size() > 0) { b.slots.pop_back(); s.refreshLocks(); }
+        }
+        ImGui::SameLine();
+        if (ImGui::Button("Clear Bottle")) {
+            b.slots.clear(); s.refreshLocks();
+        }
+
+        static int editIndex = 0; editIndex = std::clamp(editIndex, 0, std::max(0, b.capacity - 1));
+        ImGui::SliderInt("Edit Slot Index", &editIndex, 0, std::max(0, b.capacity - 1));
+        if (editIndex < (int)b.slots.size()) {
+            int ec = b.slots[editIndex].c; if (ec < 0) ec = 0; if (ec > p.numColors) ec = p.numColors;
+            if (ImGui::SliderInt("Edit Slot Color(0=empty)", &ec, 0, p.numColors)) { b.slots[editIndex].c = (Color)ec; s.refreshLocks(); }
+            bool h = b.slots[editIndex].hidden; if (ImGui::Checkbox("? Hidden", &h)) { b.slots[editIndex].hidden = h; }
+        }
+        else {
+            ImGui::TextDisabled("(Index beyond current height)");
+        }
+
+        ImGui::Separator();
+        ImGui::Text("? toggles by slot (0..capacity-1)");
+        for (int k = 0; k < b.capacity; ++k) {
+            bool h = (k < (int)b.slots.size()) ? b.slots[k].hidden : false;
+            std::string lbl = "? slot " + std::to_string(k);
+            if (ImGui::Checkbox(lbl.c_str(), &h)) {
+                if (k < (int)b.slots.size()) { b.slots[k].hidden = h; s.refreshLocks(); }
+            }
+        }
+
+        ImGui::End();
+    }
+
+    void AppUI::syncTemplateWithParams() {
+        tpl.p = p;
+        if ((int)tpl.B.size() != p.numBottles) tpl.B.resize(p.numBottles);
+        for (auto& b : tpl.B) {
+            if (b.capacity != p.capacity) b.capacity = p.capacity;
+            if ((int)b.slots.size() > p.capacity) b.slots.resize(p.capacity);
+        }
+    }
+
+    void AppUI::drawTemplate() {
+        ImGui::Begin("Template (pre-generate)");
+        ImGui::Text("Set start 'Height' and 'Gimmick'");
+        if ((int)tpl.B.size() != p.numBottles) syncTemplateWithParams();
+
+        static int tb = 0; tb = std::clamp(tb, 0, (int)tpl.B.size() - 1);
+        ImGui::SliderInt("Bottle", &tb, 0, (int)tpl.B.size() - 1);
+        auto& b = tpl.B[tb];
+        ImGui::Text("Capacity=%d  Current height=%d", b.capacity, (int)b.slots.size());
+
+        int h = (int)b.slots.size();
+        if (ImGui::SliderInt("Initial height", &h, 0, p.capacity)) {
+            if (h < (int)b.slots.size()) b.slots.resize(h);
+            else while ((int)b.slots.size() < h) b.slots.push_back(Slot{ 1,false }); // placeholder
+        }
+
+        int kind = (int)b.gimmick.kind;
+        if (ImGui::RadioButton("None", kind == 0)) kind = 0; ImGui::SameLine();
+        if (ImGui::RadioButton("Cloth", kind == 1)) kind = 1; ImGui::SameLine();
+        if (ImGui::RadioButton("Vine", kind == 2)) kind = 2; ImGui::SameLine();
+        if (ImGui::RadioButton("Bush", kind == 3)) kind = 3;
+        b.gimmick.kind = (StackGimmickKind)kind;
+        if (kind == 1) {
+            int ct = b.gimmick.clothTarget; if (ct < 1) ct = 1; if (ct > p.numColors) ct = p.numColors;
+            ImGui::SliderInt("Cloth Target Color", &ct, 1, p.numColors); b.gimmick.clothTarget = (Color)ct;
+        }
+
+        long long sumH = 0; for (const auto& bx : tpl.B) sumH += (int)bx.slots.size();
+        long long expected = 1ll * p.numColors * p.capacity;
+        ImGui::Text("Sum heights: %lld / expected %lld", sumH, expected);
+
+        ImGui::End();
+    }
+
+    int AppUI::run() {
+        // SDL2 init
+        SDL_Init(SDL_INIT_VIDEO);
+        SDL_Window* window = SDL_CreateWindow("WaterSort Map Tool", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 1400, 900, SDL_WINDOW_SHOWN);
+        SDL_Renderer* renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
+
+        IMGUI_CHECKVERSION();
+        ImGui::CreateContext();
+
+        ImGuiIO& io = ImGui::GetIO(); (void)io;
+        ImGui::StyleColorsDark();
+
+        // ▼▼ 한글 폰트 강제 로드: 실패하면 다음 후보로, 끝까지 실패하면 기본폰트
+        const char* font_candidates[] = {
+            "C:/Windows/Fonts/malgun.ttf",       // 맑은 고딕
+            "C:/Windows/Fonts/malgunbd.ttf",
+            "C:/Users/pivot/AppData/Local/Microsoft/Windows/Fonts/NanumGothic.ttf",  // 나눔고딕 (설치되어 있으면)
+            "C:/Windows/Fonts/arialuni.ttf"      // Arial Unicode MS (있을 때만)
+        };
+        ImFont* korean = nullptr;
+        for (const char* path : font_candidates) {
+            // 존재 여부와 무관하게 바로 시도(일부 PC에서 exists()가 false를 반환하는 경우가 있어요)
+            korean = io.Fonts->AddFontFromFileTTF(path, 18.0f, nullptr, io.Fonts->GetGlyphRangesKorean());
+            if (korean) { io.FontDefault = korean; break; }
+        }
+        if (!korean) {
+            // 최후 수단: 기본 폰트(라틴 전용). 이 경우 한글은 깨져 보입니다.
+            korean = io.Fonts->AddFontDefault();
+            io.FontDefault = korean;
+            // 디버그 확인용(콘솔에 출력)
+            printf("[ImGui] Korean font NOT found, using default font. Install 'Malgun Gothic' or 'NanumGothic'.\n");
+        }
+
+        // (옵션) 즉시 폰트 아틀라스 빌드 — 백엔드 init 전에 하면 자동으로 반영됩니다.
+        io.Fonts->Build();
+
+        // 2) 백엔드 초기화
+        ImGui_ImplSDL2_InitForSDLRenderer(window, renderer);
+        ImGui_ImplSDLRenderer2_Init(renderer);
+
+        // 3) 폰트 텍스처를 GPU에 업로드 (백엔드 초기화 이후에 안전)
+        ImGui_ImplSDLRenderer2_DestroyFontsTexture();
+        ImGui_ImplSDLRenderer2_CreateFontsTexture();
+
+        bool running = true; SDL_Event e;
+        while (running) {
+            while (SDL_PollEvent(&e)) {
+                ImGui_ImplSDL2_ProcessEvent(&e);
+                if (e.type == SDL_QUIT) running = false;
+            }
+            ImGui_ImplSDLRenderer2_NewFrame();
+            ImGui_ImplSDL2_NewFrame();
+            ImGui::NewFrame();
+
+            drawTopBar();
+            drawTemplate();   // ← 추가
+            drawViewer();
+            drawEditor();
+
+            ImGui::Render();
+            SDL_SetRenderDrawColor(renderer, 20, 20, 24, 255);
+            SDL_RenderClear(renderer);
+            ImGui_ImplSDLRenderer2_RenderDrawData(ImGui::GetDrawData(), renderer);
+            SDL_RenderPresent(renderer);
+        }
+
+        ImGui_ImplSDLRenderer2_Shutdown();
+        ImGui_ImplSDL2_Shutdown();
+        ImGui::DestroyContext();
+        SDL_DestroyRenderer(renderer);
+        SDL_DestroyWindow(window);
+        SDL_Quit();
+        return 0;
+    }
+
+} // namespace ws

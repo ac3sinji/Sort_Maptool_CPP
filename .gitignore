@@ -1,0 +1,34 @@
+# VS / CMake / build
+/build/
+/.vs/
+/out/
+CMakeCache.txt
+CMakeFiles/
+CMakeUserPresets.json
+
+# VS user files
+*.user
+*.suo
+*.opensdf
+*.sdf
+*.ipch
+
+# Binaries
+*.exe
+*.dll
+*.pdb
+*.lib
+*.ilk
+
+# vcpkg artifacts (소스만 올림)
+/vcpkg_installed/
+/installed/
+/packages/
+/_deps/
+
+# IDE
+.vscode/
+.idea/
+
+# Logs
+*.log
