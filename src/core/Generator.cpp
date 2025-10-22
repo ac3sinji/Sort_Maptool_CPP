@@ -223,9 +223,9 @@ namespace ws {
                 auto& b = st.B[spec.bottle];
                 b.slots.clear();
 
-                int maxAssignable = std::max(0, target - 2);
-                int assign = std::min(maxAssignable, std::max(0, available - 1));
-                if (assign < 0) assign = 0;
+                int maxAssignable = (target > 0) ? 1 : 0;
+                int assign = std::min(maxAssignable, available);
+                if (assign <= 0 && maxAssignable > 0 && available > 0) assign = 1;
 
                 for (int i = 0; i < assign; ++i) b.slots.push_back(Slot{ spec.color,false });
                 remaining[spec.color] -= assign;
@@ -297,6 +297,21 @@ namespace ws {
                             placeColor(bi, c);
                             break;
                         }
+                    }
+                }
+            }
+            for (size_t bi = 0; bi < st.B.size(); ++bi) {
+                if (reservedColor[bi] == 0 || reservedCount[bi] == 0) continue;
+                auto& slots = st.B[bi].slots;
+                if (slots.empty()) continue;
+                int fromIdx = -1;
+                for (int idx = 0; idx < (int)slots.size(); ++idx) {
+                    if (slots[idx].c == reservedColor[bi]) { fromIdx = idx; break; }
+                }
+                if (fromIdx >= 0 && slots.size() > 1) {
+                    int toIdx = rng.irange(0, (int)slots.size() - 1);
+                    if (toIdx != fromIdx) {
+                        std::swap(slots[fromIdx], slots[toIdx]);
                     }
                 }
             }
