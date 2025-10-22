@@ -74,7 +74,7 @@ namespace ws {
         }
 
         ImGui::SameLine();
-        if (ImGui::Button("Clear In‑Memory")) { generated.clear(); currentIndex = -1; }
+        if (ImGui::Button("Clear Memory")) { generated.clear(); currentIndex = -1; }
 
         ImGui::Separator();
         ImGui::InputText("Save CSV", savePath.data(), 256);

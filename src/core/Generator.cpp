@@ -236,27 +236,52 @@ namespace ws {
             return len;
         };
 
+               // ▼▼▼ 여기에 추가: 병에 색을 넣어도 되는지 검사하는 람다
+        auto allowed = [&](int bi, Color c)->bool {
+            const auto& B = st.B[bi];
+            if ((int)B.slots.size() >= heights[bi]) return false;          // 목표 높이 초과 금지
+               // ★ Cloth 병에는 그 병의 타깃색을 절대 넣지 않음
+            if (B.gimmick.kind == StackGimmickKind::Cloth && B.gimmick.clothTarget == c) return false;
+               // (선택) 같은 색 연속 길이 제한
+            if (opt.maxRunPerBottle > 0 && runlen(B, c) >= opt.maxRunPerBottle) return false;
+            return true;
+            };
+
+               // (기존 배치 루프를 아래처럼 바꿔치기)
         for (Color c : bag) {
             bool placed = false;
-            for (int tries = 0; tries < 96 && !placed; ++tries) {
+
+                     // 1) 랜덤 시도
+            for (int tries = 0; tries < 64 && !placed; ++tries) {
                 int bi = rng.irange(0, p.numBottles - 1);
-                auto& b = st.B[bi];
-                if ((int)b.slots.size() >= heights[bi]) continue;
-                if (opt.maxRunPerBottle > 0 && runlen(b, c) >= opt.maxRunPerBottle) continue;
-                b.slots.push_back(Slot{ c,false });
-                placed = true;
+                if (allowed(bi, c)) {
+                    st.B[bi].slots.push_back(Slot{ c, false });
+                    placed = true;
+                }
             }
+
+            // 2) 결정적 폴백(왼쪽부터) — 여기도 allowed 조건 사용
             if (!placed) {
                 for (int bi = 0; bi < p.numBottles; ++bi) {
-                    auto& b = st.B[bi];
-                    if ((int)b.slots.size() >= heights[bi]) continue;
-                    b.slots.push_back(Slot{ c,false });
-                    placed = true;
-                    break;
+                    if (allowed(bi, c)) {
+                        st.B[bi].slots.push_back(Slot{ c, false });
+                        placed = true;
+                        break;
+                    }
+                }
+            }
+
+            // 3) (극히 드문) 최후 폴백 — 제약상 정말 못 넣는 경우만
+            if (!placed) {
+                for (int bi = 0; bi < p.numBottles; ++bi) {
+                    if ((int)st.B[bi].slots.size() < heights[bi]) {
+                        st.B[bi].slots.push_back(Slot{ c, false });
+                        break;
+                    }
                 }
             }
         }
-
+        fixClothStart(st);
         st.refreshLocks();
         return st;
     }
@@ -279,6 +304,33 @@ namespace ws {
             }
         }
         return false;
+    }
+
+    void Generator::fixClothStart(State& st) {
+        for (auto& b : st.B) {
+            if (b.gimmick.kind != StackGimmickKind::Cloth) continue;
+            Color t = b.gimmick.clothTarget;
+            if (t <= 0) continue;
+
+            // Cloth 병 안에 타깃색이 있으면, 다른 병의 '타깃색이 아닌' 칸과 1회 스왑
+            for (int i = 0; i < (int)b.slots.size(); ++i) {
+                if (b.slots[i].c == t) {
+                    bool swapped = false;
+                    for (auto& d : st.B) {
+                        if (&d == &b) continue;
+                        for (int k = 0; k < (int)d.slots.size(); ++k) {
+                            if (d.slots[k].c != t) {
+                                std::swap(b.slots[i].c, d.slots[k].c);
+                                swapped = true;
+                                break;
+                            }
+                        }
+                        if (swapped) break;
+                    }
+                }
+            }
+        }
+        st.refreshLocks();
     }
 
 } // namespace ws
