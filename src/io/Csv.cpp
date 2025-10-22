@@ -10,12 +10,12 @@ namespace ws {
         std::ostringstream oss;
         for (size_t i = 0; i < s.B.size(); ++i) {
             const auto& b = s.B[i];
-            if (b.slots.empty()) {
-                // empty bottle => write nothing
-            }
-            else {
-                // write bottom->top colors with 0 for empty cells omitted (we only store actual height)
-                for (size_t k = 0; k < b.slots.size(); ++k) oss << int(b.slots[k].c);
+            if (!b.slots.empty()) {
+                // write bottom->top colors and pad remaining capacity with explicit zeros (top-most positions)
+                for (int k = 0; k < b.capacity; ++k) {
+                    if (k < (int)b.slots.size()) oss << int(b.slots[k].c);
+                    else oss << '0';
+                }
             }
             if (i + 1 < s.B.size()) oss << '#'; else oss << "";
         }
@@ -79,7 +79,13 @@ namespace ws {
             auto& b = s.B[i];
             const auto& token = cols[i];
             b.slots.clear();
-            for (char ch : token) { if (ch < '0' || ch>'9') continue; int v = ch - '0'; b.slots.push_back(Slot{ (Color)v,false }); }
+            for (char ch : token) {
+                if (ch < '0' || ch > '9') continue;
+                int v = ch - '0';
+                if (v == 0) continue; // padded empty cell
+                if ((int)b.slots.size() >= b.capacity) break;
+                b.slots.push_back(Slot{ (Color)v,false });
+            }
         }
 
         // slot_gimmick
