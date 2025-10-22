@@ -2,6 +2,7 @@
 #include "Generator.hpp"
 #include "Solver.hpp"
 #include <algorithm>
+#include <limits>
 
 namespace ws {
 
@@ -198,92 +199,134 @@ namespace ws {
     }
 
     State Generator::createRandomMixedWithHeights(const std::vector<int>& heights) {
-        State st; st.p = p; st.B.resize(p.numBottles);
-        for (size_t i = 0; i < st.B.size(); ++i) {
-            st.B[i].capacity = p.capacity;
-            if (base && i < base->B.size()) st.B[i].gimmick = base->B[i].gimmick;
-        }
+        auto attemptBuild = [&](State& st) {
+            st = State{}; st.p = p; st.B.resize(p.numBottles);
+            for (size_t i = 0; i < st.B.size(); ++i) {
+                st.B[i].capacity = p.capacity;
+                if (base && i < base->B.size()) st.B[i].gimmick = base->B[i].gimmick;
+            }
 
-        auto plan = buildSupportPlan(heights);
-        std::vector<int> remaining(p.numColors + 1, p.capacity);
+            auto plan = buildSupportPlan(heights);
+            std::vector<int> remaining(p.numColors + 1, p.capacity);
+            std::vector<Color> reservedColor(p.numBottles, 0);
+            std::vector<int> reservedCount(p.numBottles, 0);
+            std::vector<int> reservedLimit(p.numBottles, std::numeric_limits<int>::max());
 
-        for (const auto& spec : plan) {
-            if (spec.bottle < 0 || spec.bottle >= p.numBottles) continue;
-            if (spec.color < 1 || spec.color > p.numColors) continue;
-            int target = heights[spec.bottle];
-            if (target <= 0) continue;
-            int assign = std::min(target, remaining[spec.color]);
-            auto& b = st.B[spec.bottle];
-            b.slots.clear();
-            for (int i = 0; i < assign; ++i) b.slots.push_back(Slot{ spec.color,false });
-            remaining[spec.color] -= assign;
-        }
+            for (const auto& spec : plan) {
+                if (spec.bottle < 0 || spec.bottle >= p.numBottles) continue;
+                if (spec.color < 1 || spec.color > p.numColors) continue;
+                int target = heights[spec.bottle];
+                if (target <= 0) continue;
+                int available = remaining[spec.color];
+                if (available <= 0) continue;
 
-		std::vector<Color> bag;
-        long long expected = 1ll * p.numColors * p.capacity;
-        bag.reserve((size_t)expected);
-        for (Color c = 1; c <= p.numColors; ++c) {
-            for (int k = 0; k < remaining[c]; ++k) bag.push_back(c);
-        }
+                auto& b = st.B[spec.bottle];
+                b.slots.clear();
 
-        for (size_t i = 0; i < bag.size(); ++i) {
-            size_t j = size_t(rng.irange(0, bag.empty() ? 0 : (int)bag.size() - 1));
-            std::swap(bag[i], bag[j]);
-        }
+                int maxAssignable = std::max(0, target - 2);
+                int assign = std::min(maxAssignable, std::max(0, available - 1));
+                if (assign < 0) assign = 0;
 
-        auto runlen = [](const Bottle& b, Color c) {
-            int len = 0; for (int i = (int)b.slots.size() - 1; i >= 0; --i) { if (b.slots[i].c == c) ++len; else break; }
-            return len;
-        };
+                for (int i = 0; i < assign; ++i) b.slots.push_back(Slot{ spec.color,false });
+                remaining[spec.color] -= assign;
+                reservedColor[spec.bottle] = spec.color;
+                reservedCount[spec.bottle] = assign;
+                reservedLimit[spec.bottle] = maxAssignable;
+            }
 
-               // ▼▼▼ 여기에 추가: 병에 색을 넣어도 되는지 검사하는 람다
-        auto allowed = [&](int bi, Color c)->bool {
-            const auto& B = st.B[bi];
-            if ((int)B.slots.size() >= heights[bi]) return false;          // 목표 높이 초과 금지
-               // ★ Cloth 병에는 그 병의 타깃색을 절대 넣지 않음
-            if (B.gimmick.kind == StackGimmickKind::Cloth && B.gimmick.clothTarget == c) return false;
-               // (선택) 같은 색 연속 길이 제한
-            if (opt.maxRunPerBottle > 0 && runlen(B, c) >= opt.maxRunPerBottle) return false;
-            return true;
+            std::vector<Color> bag;
+            long long expected = 1ll * p.numColors * p.capacity;
+            bag.reserve((size_t)expected);
+            for (Color c = 1; c <= p.numColors; ++c) {
+                for (int k = 0; k < remaining[c]; ++k) bag.push_back(c);
+            }
+
+            for (size_t i = 0; i < bag.size(); ++i) {
+                size_t j = size_t(rng.irange(0, bag.empty() ? 0 : (int)bag.size() - 1));
+                std::swap(bag[i], bag[j]);
+            }
+
+            auto runlen = [](const Bottle& b, Color c) {
+                int len = 0; for (int i = (int)b.slots.size() - 1; i >= 0; --i) { if (b.slots[i].c == c) ++len; else break; }
+                return len;
             };
 
-               // (기존 배치 루프를 아래처럼 바꿔치기)
-        for (Color c : bag) {
-            bool placed = false;
+            auto allowed = [&](int bi, Color c)->bool {
+                const auto& B = st.B[bi];
+                if ((int)B.slots.size() >= heights[bi]) return false;
+                if (B.gimmick.kind == StackGimmickKind::Cloth && B.gimmick.clothTarget == c) return false;
+                if (reservedColor[bi] == c && reservedCount[bi] >= reservedLimit[bi]) return false;
+                if (opt.maxRunPerBottle > 0 && runlen(B, c) >= opt.maxRunPerBottle) return false;
+                return true;
+                };
 
-                     // 1) 랜덤 시도
-            for (int tries = 0; tries < 64 && !placed; ++tries) {
-                int bi = rng.irange(0, p.numBottles - 1);
-                if (allowed(bi, c)) {
-                    st.B[bi].slots.push_back(Slot{ c, false });
-                    placed = true;
-                }
-            }
+            auto placeColor = [&](int bi, Color c) {
+                st.B[bi].slots.push_back(Slot{ c,false });
+                if (reservedColor[bi] == c) ++reservedCount[bi];
+                };
 
-            // 2) 결정적 폴백(왼쪽부터) — 여기도 allowed 조건 사용
-            if (!placed) {
-                for (int bi = 0; bi < p.numBottles; ++bi) {
+            for (Color c : bag) {
+                bool placed = false;
+                for (int tries = 0; tries < 64 && !placed; ++tries) {
+                    int bi = rng.irange(0, p.numBottles - 1);
                     if (allowed(bi, c)) {
-                        st.B[bi].slots.push_back(Slot{ c, false });
+                        placeColor(bi, c);
                         placed = true;
-                        break;
+                    }
+                }
+                if (!placed) {
+                    for (int bi = 0; bi < p.numBottles; ++bi) {
+                        if (allowed(bi, c)) {
+                            placeColor(bi, c);
+                            placed = true;
+                            break;
+                        }
+                    }
+                }
+                if (!placed) {
+                    for (int bi = 0; bi < p.numBottles && !placed; ++bi) {
+                        if ((int)st.B[bi].slots.size() >= heights[bi]) continue;
+                        if (reservedColor[bi] == c && reservedCount[bi] >= reservedLimit[bi]) continue;
+                        placeColor(bi, c);
+                        placed = true;
+                    }
+                }
+                if (!placed) {
+                    for (int bi = 0; bi < p.numBottles; ++bi) {
+                        if ((int)st.B[bi].slots.size() < heights[bi]) {
+                            placeColor(bi, c);
+                            break;
+                        }
                     }
                 }
             }
+            fixClothStart(st);
+        };
 
-            // 3) (극히 드문) 최후 폴백 — 제약상 정말 못 넣는 경우만
-            if (!placed) {
-                for (int bi = 0; bi < p.numBottles; ++bi) {
-                    if ((int)st.B[bi].slots.size() < heights[bi]) {
-                        st.B[bi].slots.push_back(Slot{ c, false });
-                        break;
-                    }
-                }
+        auto hasMonoFull = [](const State& st) {
+            for (const auto& b : st.B) {
+                if (!b.isEmpty() && b.isMonoFull()) return true;
+            }
+            return false;
+            };
+
+        State candidate;
+        const int maxAttempts = 64;
+        for (int attempt = 0; attempt < maxAttempts; ++attempt) {
+            attemptBuild(candidate);
+            if (!hasMonoFull(candidate)) {
+                candidate.refreshLocks();
+                return candidate;
             }
         }
-        fixClothStart(st);
-        st.refreshLocks();
-        return st;
+            // Fallback: perturb the last candidate to break pre-solved stacks.
+            for (int iter = 0; iter < 3; ++iter) {
+                if (!hasMonoFull(candidate)) break;
+                breakPreSolvedStacks(candidate);
+                fixClothStart(candidate);
+            }
+            candidate.refreshLocks();
+            return candidate;
     }
 
     State Generator::createRandomMixed() {
@@ -304,6 +347,53 @@ namespace ws {
             }
         }
         return false;
+    }
+
+    void Generator::breakPreSolvedStacks(State& st) {
+        auto hasMonoFull = [](const Bottle& b) {
+            return !b.isEmpty() && b.isMonoFull();
+            };
+
+        for (int iter = 0; iter < 8; ++iter) {
+            bool changed = false;
+            for (size_t i = 0; i < st.B.size(); ++i) {
+                auto& mono = st.B[i];
+                if (!hasMonoFull(mono)) continue;
+                Color monoColor = mono.slots.empty() ? 0 : mono.slots[0].c;
+                bool swapped = false;
+
+                for (size_t j = 0; j < st.B.size() && !swapped; ++j) {
+                    if (j == i) continue;
+                    auto& other = st.B[j];
+                    for (size_t idx = 0; idx < other.slots.size(); ++idx) {
+                        if (other.slots[idx].c == monoColor) continue;
+                        size_t monoIdx = (size_t)rng.irange(0, mono.size() - 1);
+                        std::swap(mono.slots[monoIdx], other.slots[idx]);
+                        if (!mono.isMonoFull() && !other.isMonoFull()) {
+                            swapped = true;
+                            changed = true;
+                            break;
+                        }
+                        std::swap(mono.slots[monoIdx], other.slots[idx]);
+                    }
+                }
+
+                if (!swapped) {
+                    for (size_t j = 0; j < st.B.size(); ++j) {
+                        if (j == i) continue;
+                        auto& other = st.B[j];
+                        if (other.slots.empty()) continue;
+                        std::swap(mono.slots.back(), other.slots.back());
+                        if (!mono.isMonoFull()) {
+                            changed = true;
+                            break;
+                        }
+                        std::swap(mono.slots.back(), other.slots.back());
+                    }
+                }
+            }
+            if (!changed) break;
+        }
     }
 
     void Generator::fixClothStart(State& st) {
@@ -330,7 +420,6 @@ namespace ws {
                 }
             }
         }
-        st.refreshLocks();
     }
 
 } // namespace ws
