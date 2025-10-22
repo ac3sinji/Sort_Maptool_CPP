@@ -42,6 +42,12 @@ namespace ws {
         bool placeGimmicksRespecting(const State& sIn, State& out);
         State createRandomMixed();  // NEW
         State createRandomMixedFromHeights(const State& baseTpl); // NEW
+        struct SupportSpec { int bottle{ -1 }; Color color{ 0 }; };
+        std::vector<int> computeDefaultHeights() const;
+        std::vector<int> computeHeightsFromTemplate(const State& baseTpl) const;
+        std::vector<SupportSpec> buildSupportPlan(const std::vector<int>& heights) const;
+        State createRandomMixedWithHeights(const std::vector<int>& heights);
+        bool hasAnyMove(const State& s) const;
     };
 
 } // namespace ws

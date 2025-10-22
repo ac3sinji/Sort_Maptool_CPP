@@ -81,6 +81,10 @@ namespace ws {
                 mix = s.p.numColors * s.p.capacity; // 대충 섞임 강도 표기로 사용
             }
 
+            if (!hasAnyMove(s)) {
+                continue;
+                
+            }
             Solver solver(opt.solveTimeMs);
             auto res = solver.solve(s);
             if (res.solved) {
@@ -94,54 +98,161 @@ namespace ws {
         return std::nullopt;
     }
 
-    State Generator::createRandomMixed() {
-        State st; st.p = p; st.B.resize(p.numBottles);
-        for (auto& b : st.B) b.capacity = p.capacity;
+    std::vector<int> Generator::computeDefaultHeights() const {
+        std::vector<int> heights(p.numBottles, 0);
+        int fillable = std::clamp(p.numBottles - std::max(0, opt.reservedEmpty), 1, p.numBottles);
+        long long cells = 1ll * p.numColors * p.capacity;
 
-        // 기믹 유지(있다면)
-        if (base) {
-            for (size_t i = 0; i < st.B.size() && i < base->B.size(); ++i)
-                st.B[i].gimmick = base->B[i].gimmick;
+        int idx = 0;
+        for (; idx < fillable && cells > 0; ++idx) {
+            int take = (int)std::min<long long>(p.capacity, cells);
+            heights[idx] = take;
+            cells -= take;
+        }
+        for (; idx < p.numBottles && cells > 0; ++idx) {
+            int take = (int)std::min<long long>(p.capacity, cells);
+            heights[idx] = take;
+            cells -= take;
+        }
+        return heights;
+    }
+
+    std::vector<int> Generator::computeHeightsFromTemplate(const State& baseTpl) const {
+        std::vector<int> heights(p.numBottles, 0);
+        long long sum = 0;
+        for (size_t i = 0; i < heights.size() && i < baseTpl.B.size(); ++i) {
+            heights[i] = std::min((int)baseTpl.B[i].slots.size(), p.capacity);
+            sum += heights[i];
+        }
+        long long expected = 1ll * p.numColors * p.capacity;
+        if (sum != expected) {
+            long long need = expected;
+            for (int i = 0; i < p.numBottles && need > 0; ++i) {
+                int take = (int)std::min<long long>(need, p.capacity);
+                heights[i] = take;
+                need -= take;
+            }
+        }
+        return heights;
+    }
+
+    std::vector<Generator::SupportSpec> Generator::buildSupportPlan(const std::vector<int>& heights) const {
+        std::vector<SupportSpec> plan;
+        if (!base) return plan;
+        std::vector<int> colorOwner(p.numColors + 1, -1);
+        std::vector<bool> bottleReserved(p.numBottles, false);
+
+        auto ensureColor = [&](Color col, int preferIndex, bool strict) -> int {
+            if (col < 1 || col > p.numColors) return -1;
+            if (colorOwner[col] >= 0) return colorOwner[col];
+            auto tryAssign = [&](int idx) -> bool {
+                if (idx < 0 || idx >= p.numBottles) return false;
+                if (heights[idx] != p.capacity) return false;
+                if (bottleReserved[idx]) return false;
+                bottleReserved[idx] = true;
+                colorOwner[col] = idx;
+                plan.push_back({ idx, col });
+                return true;
+            };
+            if (tryAssign(preferIndex)) return colorOwner[col];
+            if (strict) return -1;
+            if (tryAssign((int)col - 1)) return colorOwner[col];
+            for (int idx = 0; idx < p.numBottles; ++idx) {
+                if (tryAssign(idx)) return colorOwner[col];
+            }
+            return -1;
+        };
+
+        auto pickUnusedColor = [&]() -> Color {
+            for (Color c = 1; c <= p.numColors; ++c) {
+                if (colorOwner[c] == -1) return c;
+            }
+            return 0;
+            };
+
+        for (size_t i = 0; i < base->B.size() && i < heights.size(); ++i) {
+            const auto& gimmick = base->B[i].gimmick;
+            if (gimmick.kind == StackGimmickKind::Cloth) {
+                ensureColor(gimmick.clothTarget, (int)i, false);
+            }
+        }
+        auto satisfyBush = [&](int idx) -> bool {
+            if (idx < 0 || idx >= p.numBottles) return false;
+            if (heights[idx] != p.capacity) return false;
+            if (bottleReserved[idx]) return true;
+            Color col = pickUnusedColor();
+            if (col == 0) return false;
+            return ensureColor(col, idx, true) >= 0;
+            };
+
+        for (size_t i = 0; i < base->B.size() && i < heights.size(); ++i) {
+            const auto& gimmick = base->B[i].gimmick;
+            if (gimmick.kind == StackGimmickKind::Bush) {
+                bool ok = false;
+                if (i > 0) ok = satisfyBush((int)i - 1);
+                if (!ok && i + 1 < base->B.size()) satisfyBush((int)i + 1);
+            }
         }
 
-        // 채울 병 개수 = 전체 - 예약 비병 수 (최소 1 보장)
-        int fillable = std::max(1, p.numBottles - std::max(0, opt.reservedEmpty));
-        fillable = std::min(fillable, p.numBottles);
+        return plan;
+    }
 
-        // 색상 “봉투” 만들기 (각 색 p.capacity개씩)
-        std::vector<Color> bag; bag.reserve(p.numColors * p.capacity);
-        for (int c = 1; c <= p.numColors; ++c)
-            for (int k = 0; k < p.capacity; ++k) bag.push_back((Color)c);
+    State Generator::createRandomMixedWithHeights(const std::vector<int>& heights) {
+        State st; st.p = p; st.B.resize(p.numBottles);
+        for (size_t i = 0; i < st.B.size(); ++i) {
+            st.B[i].capacity = p.capacity;
+            if (base && i < base->B.size()) st.B[i].gimmick = base->B[i].gimmick;
+        }
 
-        // 랜덤 셔플
+        auto plan = buildSupportPlan(heights);
+        std::vector<int> remaining(p.numColors + 1, p.capacity);
+
+        for (const auto& spec : plan) {
+            if (spec.bottle < 0 || spec.bottle >= p.numBottles) continue;
+            if (spec.color < 1 || spec.color > p.numColors) continue;
+            int target = heights[spec.bottle];
+            if (target <= 0) continue;
+            int assign = std::min(target, remaining[spec.color]);
+            auto& b = st.B[spec.bottle];
+            b.slots.clear();
+            for (int i = 0; i < assign; ++i) b.slots.push_back(Slot{ spec.color,false });
+            remaining[spec.color] -= assign;
+        }
+
+		std::vector<Color> bag;
+        long long expected = 1ll * p.numColors * p.capacity;
+        bag.reserve((size_t)expected);
+        for (Color c = 1; c <= p.numColors; ++c) {
+            for (int k = 0; k < remaining[c]; ++k) bag.push_back(c);
+        }
+
         for (size_t i = 0; i < bag.size(); ++i) {
-            size_t j = size_t(rng.irange(0, (int)bag.size() - 1));
+            size_t j = size_t(rng.irange(0, bag.empty() ? 0 : (int)bag.size() - 1));
             std::swap(bag[i], bag[j]);
         }
 
         auto runlen = [](const Bottle& b, Color c) {
             int len = 0; for (int i = (int)b.slots.size() - 1; i >= 0; --i) { if (b.slots[i].c == c) ++len; else break; }
             return len;
-            };
+        };
 
-        // bag의 색들을 무작위 병에 배치 (같은색 연속 길이 제한으로 “섞임” 유지)
         for (Color c : bag) {
             bool placed = false;
-            for (int tries = 0; tries < 64 && !placed; ++tries) {
-                int bi = rng.irange(0, fillable - 1);
+            for (int tries = 0; tries < 96 && !placed; ++tries) {
+                int bi = rng.irange(0, p.numBottles - 1);
                 auto& b = st.B[bi];
-                if (b.size() < b.capacity) {
-                    if (opt.maxRunPerBottle <= 0 || runlen(b, c) < opt.maxRunPerBottle) {
-                        b.slots.push_back(Slot{ c,false });
-                        placed = true;
-                    }
-                }
+                if ((int)b.slots.size() >= heights[bi]) continue;
+                if (opt.maxRunPerBottle > 0 && runlen(b, c) >= opt.maxRunPerBottle) continue;
+                b.slots.push_back(Slot{ c,false });
+                placed = true;
             }
             if (!placed) {
-                // 후방대체: 아무 병에나 넣기
-                for (int bi = 0; bi < fillable; ++bi) {
+                for (int bi = 0; bi < p.numBottles; ++bi) {
                     auto& b = st.B[bi];
-                    if (b.size() < b.capacity) { b.slots.push_back(Slot{ c,false }); break; }
+                    if ((int)b.slots.size() >= heights[bi]) continue;
+                    b.slots.push_back(Slot{ c,false });
+                    placed = true;
+                    break;
                 }
             }
         }
@@ -150,67 +261,24 @@ namespace ws {
         return st;
     }
 
+    State Generator::createRandomMixed() {
+        auto heights = computeDefaultHeights();
+        return createRandomMixedWithHeights(heights);
+    }
+
     State Generator::createRandomMixedFromHeights(const State& baseTpl) {
-        State st; st.p = p; st.B.resize(p.numBottles);
-        for (size_t i = 0; i < st.B.size(); ++i) {
-            st.B[i].capacity = p.capacity;
-            st.B[i].gimmick = (i < baseTpl.B.size() ? baseTpl.B[i].gimmick : StackGimmick{});
-        }
+        auto heights = computeHeightsFromTemplate(baseTpl);
+        return createRandomMixedWithHeights(heights);
+    }
 
-        // 템플릿의 목표 높이 수집
-        std::vector<int> heights(p.numBottles, 0); long long sum = 0;
-        for (size_t i = 0; i < heights.size() && i < baseTpl.B.size(); ++i) {
-            heights[i] = std::min((int)baseTpl.B[i].slots.size(), p.capacity);
-            sum += heights[i];
-        }
-        long long expected = 1ll * p.numColors * p.capacity;
-        if (sum != expected) {
-            // 합이 안 맞으면 왼쪽부터 expected만큼 채우는 안전한 폴백
-            long long need = expected;
-            for (int i = 0; i < p.numBottles; ++i) {
-                int take = (int)std::min<long long>(need, p.capacity);
-                heights[i] = take; need -= take;
+    bool Generator::hasAnyMove(const State& s) const {
+        for (int i = 0; i < (int)s.B.size(); ++i) {
+            for (int j = 0; j < (int)s.B.size(); ++j) {
+                if (i == j) continue;
+                if (s.canPour(i, j, nullptr)) return true;
             }
         }
-
-        // 색상 토큰 가방 만들기 (각 색 capacity개씩)
-        std::vector<Color> bag; bag.reserve((size_t)expected);
-        for (int c = 1; c <= p.numColors; ++c)
-            for (int k = 0; k < p.capacity; ++k) bag.push_back((Color)c);
-
-        // 셔플
-        for (size_t i = 0; i < bag.size(); ++i) {
-            size_t j = size_t(rng.irange(0, (int)bag.size() - 1));
-            std::swap(bag[i], bag[j]);
-        }
-
-        auto runlen = [](const Bottle& b, Color c) {
-            int len = 0; for (int i = (int)b.slots.size() - 1; i >= 0; --i) { if (b.slots[i].c == c) ++len; else break; }
-            return len;
-            };
-
-        // 목표 높이만큼 각 병에 랜덤 채움(같은 색 연속 길이 제한으로 섞임 유지)
-        for (Color c : bag) {
-            bool placed = false;
-            for (int tries = 0; tries < 64 && !placed; ++tries) {
-                int bi = rng.irange(0, p.numBottles - 1);
-                auto& b = st.B[bi];
-                if (b.size() < heights[bi]) {
-                    if (opt.maxRunPerBottle <= 0 || runlen(b, c) < opt.maxRunPerBottle) {
-                        b.slots.push_back(Slot{ c,false }); placed = true;
-                    }
-                }
-            }
-            if (!placed) {
-                for (int bi = 0; bi < p.numBottles; ++bi) {
-                    auto& b = st.B[bi];
-                    if (b.size() < heights[bi]) { b.slots.push_back(Slot{ c,false }); break; }
-                }
-            }
-        }
-
-        st.refreshLocks();
-        return st;
+        return false;
     }
 
 } // namespace ws
