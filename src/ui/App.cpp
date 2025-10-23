@@ -264,6 +264,19 @@ namespace ws {
             ImGui::SliderInt("Cloth Target Color", &ct, 1, p.numColors); b.gimmick.clothTarget = (Color)ct;
         }
 
+        ImGui::Separator();
+        ImGui::Text("? Hidden per slot (0 = bottom)");
+        for (int k = 0; k < b.capacity; ++k) {
+            bool enabled = k < (int)b.slots.size();
+            bool h = enabled ? b.slots[k].hidden : false;
+            if (!enabled) ImGui::BeginDisabled();
+            std::string lbl = "? slot " + std::to_string(k);
+            if (ImGui::Checkbox(lbl.c_str(), &h) && enabled) {
+                b.slots[k].hidden = h;
+            }
+            if (!enabled) ImGui::EndDisabled();
+        }
+
         long long sumH = 0; for (const auto& bx : tpl.B) sumH += (int)bx.slots.size();
         long long expected = 1ll * p.numColors * p.capacity;
         ImGui::Text("Sum heights: %lld / expected %lld", sumH, expected);

@@ -316,6 +316,17 @@ namespace ws {
                 }
             }
             fixClothStart(st);
+
+            if (base) {
+                for (size_t bi = 0; bi < st.B.size() && bi < base->B.size(); ++bi) {
+                    const auto& tplBottle = base->B[bi];
+                    auto& slots = st.B[bi].slots;
+                    int limit = std::min((int)slots.size(), (int)tplBottle.slots.size());
+                    for (int idx = 0; idx < limit; ++idx) {
+                        slots[idx].hidden = tplBottle.slots[idx].hidden;
+                    }
+                }
+            }
         };
 
         auto hasMonoFull = [](const State& st) {
