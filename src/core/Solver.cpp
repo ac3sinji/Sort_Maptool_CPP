@@ -1,10 +1,11 @@
-// ========================= src/core/Solver.cpp =========================
+﻿// ========================= src/core/Solver.cpp =========================
 #include "Solver.hpp"
 #include <queue>
 #include <unordered_set>
 #include <unordered_map>
 #include <chrono>
 #include <algorithm>
+#include <cmath>
 
 namespace ws {
 
@@ -86,20 +87,67 @@ namespace ws {
     }
 
     double Solver::estimateDifficulty(const State& s, int minMoves) const {
-        // Compose from heuristic features
-        int colors = s.p.numColors;
-        int empties = 0; for (auto& b : s.B) if (b.isEmpty()) ++empties;
-        int locks = 0; for (size_t i = 0; i < s.B.size(); ++i) { if (s.B[i].gimmick.kind != StackGimmickKind::None) ++locks; }
-        int h0 = heuristic(s);
+        // Compose from heuristic features with softer contribution from gimmicks.
+        const int colors = s.p.numColors;
+        const int bottles = static_cast<int>(s.B.size());
 
-        double score = 0.0;
-        score += minMoves * 1.6;
-        score += h0 * 1.8;
-        score += std::max(0, locks * 3 - empties * 1);
-        score += std::max(0, colors - 5);
+        // Base move pressure – emphasise longer optimal routes but with diminishing returns.
+        const double moveDepth = std::max(0, minMoves);
+        const double moveComponent = std::min(45.0, std::pow(moveDepth + 1.0, 1.1) * 1.35);
 
-        // clamp to 0..100
-        if (score < 0) score = 0; if (score > 100) score = 100;
+        // Structural complexity derived from the IDA* heuristic (fragmentation, blocking, etc.).
+        const int h0 = heuristic(s);
+        const double heuristicComponent = std::min(25.0, std::pow(static_cast<double>(std::max(0, h0)), 1.2) * 1.6);
+
+        // Count fragmentation and hidden information.
+        double fragmentation = 0.0;
+        int hiddenSlots = 0;
+        int emptyBottles = 0;
+        for (const auto& b : s.B) {
+            if (b.isEmpty()) { ++emptyBottles; continue; }
+            Color prev = 0;
+            int groups = 0;
+            for (const auto& sl : b.slots) {
+                if (sl.hidden) ++hiddenSlots;
+                if (sl.c == 0) continue;
+                if (sl.c != prev) {
+                    ++groups;
+                    prev = sl.c;
+                }
+            }
+            if (groups > 1) fragmentation += static_cast<double>(groups - 1);
+        }
+        const double fragmentationComponent = std::min(15.0, fragmentation * 1.25);
+        const double hiddenComponent = std::min(8.0, hiddenSlots * 0.7);
+
+        // Evaluate gimmick intensity. Weight each gimmick by type and fill state, then saturate.
+        double gimmickWeight = 0.0;
+        for (const auto& b : s.B) {
+            if (b.gimmick.kind == StackGimmickKind::None) continue;
+            double weight = 1.0;
+            switch (b.gimmick.kind) {
+            case StackGimmickKind::Cloth: weight = 0.6; break; // light constraint
+            case StackGimmickKind::Vine:  weight = 1.0; break; // medium constraint
+            case StackGimmickKind::Bush:  weight = 1.3; break; // heavy constraint
+            default: break;
+            }
+            const double fillRatio = b.capacity > 0 ? static_cast<double>(b.size()) / b.capacity : 0.0;
+            // Gimmicks on mostly empty bottles contribute less to difficulty.
+            weight *= 0.5 + std::min(1.0, fillRatio) * 0.5;
+            gimmickWeight += weight;
+        }
+        const double normalizedGimmickPressure = bottles > 0 ? gimmickWeight / bottles : 0.0;
+        double gimmickComponent = (1.0 - std::exp(-normalizedGimmickPressure * 2.8)) * 18.0;
+        gimmickComponent -= std::min(5.0, static_cast<double>(emptyBottles)); // free space mitigates gimmicks
+        if (gimmickComponent < 0.0) gimmickComponent = 0.0;
+
+        // Additional subtle scaling by colour variety beyond the default palette.
+        const double colorComponent = std::min(7.0, std::max(0, colors - 5) * 1.2);
+
+        double score = moveComponent + heuristicComponent + fragmentationComponent + hiddenComponent + gimmickComponent + colorComponent;
+
+        if (score < 0.0) score = 0.0;
+        if (score > 100.0) score = 100.0;
         return score;
     }
 
