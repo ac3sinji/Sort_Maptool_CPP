@@ -6,6 +6,7 @@
 #include "backends/imgui_impl_sdlrenderer2.h"
 #include <algorithm> // for std::clamp
 #include <filesystem> // for font path existence check
+#include <string>
 
 namespace ws {
 
@@ -17,32 +18,41 @@ namespace ws {
 
     void AppUI::ensureIndex(int idx) { if (idx >= 0 && idx < (int)generated.size()) currentIndex = idx; }
 
+    static bool InputIntClamped(const char* label, int* value, int minValue, int maxValue, int step = 1, int stepFast = 5) {
+        if (minValue > maxValue) std::swap(minValue, maxValue);
+        int before = *value;
+        bool interacted = ImGui::InputInt(label, value, step, stepFast);
+        if (*value < minValue) *value = minValue;
+        if (*value > maxValue) *value = maxValue;
+        return interacted || *value != before;
+    }
+
     void AppUI::drawTopBar() {
         ImGui::Begin("Controls");
         ImGui::Text("Params");
-        ImGui::SliderInt("Colors", &p.numColors, 1, 18);
-        ImGui::SliderInt("Bottles", &p.numBottles, 3, 30);
-        ImGui::SliderInt("Capacity", &p.capacity, 3, 50);
+        bool pChanged = false;
+        pChanged |= InputIntClamped("Colors", &p.numColors, 1, 18);
+        pChanged |= InputIntClamped("Bottles", &p.numBottles, 3, 30);
+        pChanged |= InputIntClamped("Capacity", &p.capacity, 3, 50);
         ImGui::Separator();
         ImGui::Text("Generator");
-        ImGui::SliderInt("Mix min", &opt.mixMin, 10, 300);
-        ImGui::SliderInt("Mix max", &opt.mixMax, opt.mixMin, 400);
-        ImGui::SliderInt("Solve ms", &opt.solveTimeMs, 200, 5000);
-        ImGui::SliderInt("Count (N)", &NtoGenerate, 1, 50);
+        if (InputIntClamped("Mix min", &opt.mixMin, 10, 300, 5, 20)) {
+            if (opt.mixMax < opt.mixMin) opt.mixMax = opt.mixMin;
+        }
+        InputIntClamped("Mix max", &opt.mixMax, opt.mixMin, 400, 5, 20);
+        InputIntClamped("Solve ms", &opt.solveTimeMs, 200, 5000, 10, 100);
+        InputIntClamped("Count (N)", &NtoGenerate, 1, 50);
         ImGui::Separator();
         ImGui::Text("Start State");
         ImGui::Checkbox("Start mixed (random deal)", &opt.startMixed);
         ImGui::BeginDisabled(!opt.startMixed);
-        ImGui::SliderInt("Reserved empty bottles", &opt.reservedEmpty, 0, std::max(0, p.numBottles - 1));
-        ImGui::SliderInt("Max same-color run", &opt.maxRunPerBottle, 0, p.capacity);
-        ImGui::EndDisabled(); bool pChanged = false;
-        pChanged |= ImGui::SliderInt("Colors", &p.numColors, 1, 18);
-        pChanged |= ImGui::SliderInt("Bottles", &p.numBottles, 3, 30);
-        pChanged |= ImGui::SliderInt("Capacity", &p.capacity, 3, 50);
+        InputIntClamped("Reserved empty bottles", &opt.reservedEmpty, 0, std::max(0, p.numBottles - 1));
+        InputIntClamped("Max same-color run", &opt.maxRunPerBottle, 0, p.capacity);
+        ImGui::EndDisabled();
         if (pChanged) syncTemplateWithParams();
 
         ImGui::Checkbox("Use template on generate", &useTemplate);
-        ImGui::SliderInt("Max same-color run", &opt.maxRunPerBottle, 0, p.capacity);
+        InputIntClamped("Max same-color run", &opt.maxRunPerBottle, 0, p.capacity);
 
         long long sumH = 0; for (const auto& b : tpl.B) sumH += (int)b.slots.size();
         long long expected = 1ll * p.numColors * p.capacity;
@@ -160,6 +170,8 @@ namespace ws {
             if (!badge.empty()) {
                 dl->AddText(ImVec2(x, y - b.capacity * cell - 16), IM_COL32(250, 220, 120, 255), badge.c_str());
             }
+            std::string bottleLabel = std::to_string(i + 1);
+            dl->AddText(ImVec2(x, y + 6), IM_COL32(200, 200, 200, 255), bottleLabel.c_str());
         }
 
         ImGui::End();
@@ -170,8 +182,13 @@ namespace ws {
         if (currentIndex < 0 || currentIndex >= (int)generated.size()) { ImGui::Text("No map selected"); ImGui::End(); return; }
         auto& s = generated[currentIndex].state;
 
-        static int selBottle = 0; selBottle = std::clamp(selBottle, 0, (int)s.B.size() - 1);
-        ImGui::SliderInt("Bottle", &selBottle, 0, (int)s.B.size() - 1);
+        static int selBottle = 0;
+        selBottle = std::clamp(selBottle, 0, (int)s.B.size() - 1);
+        int displayBottle = selBottle + 1;
+        if (InputIntClamped("Bottle", &displayBottle, 1, (int)s.B.size())) {
+            selBottle = displayBottle - 1;
+        }
+        ImGui::Text("Editing Bottle #%d", selBottle + 1);
 
         auto& b = s.B[selBottle];
         ImGui::Text("Capacity=%d  Size=%d", b.capacity, (int)b.slots.size());
@@ -185,13 +202,17 @@ namespace ws {
         b.gimmick.kind = (StackGimmickKind)kind;
         if (kind == 1) {
             int ct = b.gimmick.clothTarget; if (ct < 1) ct = 1; if (ct > p.numColors) ct = p.numColors;
-            ImGui::SliderInt("Cloth Target Color", &ct, 1, p.numColors); b.gimmick.clothTarget = (Color)ct;
+            if (InputIntClamped("Cloth Target Color", &ct, 1, p.numColors)) {
+                b.gimmick.clothTarget = (Color)ct;
+            }
         }
 
         ImGui::Separator();
         ImGui::Text("Paint / Edit Slots");
         static int paintColor = 1; paintColor = std::clamp(paintColor, 1, p.numColors);
-        ImGui::SliderInt("Paint Color", &paintColor, 1, p.numColors);
+        if (InputIntClamped("Paint Color", &paintColor, 1, p.numColors)) {
+            paintColor = std::clamp(paintColor, 1, p.numColors);
+        }
         if (ImGui::Button("Push Top")) {
             if (b.size() < b.capacity) { b.slots.push_back(Slot{ (Color)paintColor,false }); s.refreshLocks(); }
         }
@@ -204,22 +225,25 @@ namespace ws {
             b.slots.clear(); s.refreshLocks();
         }
 
-        static int editIndex = 0; editIndex = std::clamp(editIndex, 0, std::max(0, b.capacity - 1));
-        ImGui::SliderInt("Edit Slot Index", &editIndex, 0, std::max(0, b.capacity - 1));
-        if (editIndex < (int)b.slots.size()) {
-            int ec = b.slots[editIndex].c; if (ec < 0) ec = 0; if (ec > p.numColors) ec = p.numColors;
-            if (ImGui::SliderInt("Edit Slot Color(0=empty)", &ec, 0, p.numColors)) { b.slots[editIndex].c = (Color)ec; s.refreshLocks(); }
-            bool h = b.slots[editIndex].hidden; if (ImGui::Checkbox("? Hidden", &h)) { b.slots[editIndex].hidden = h; }
+        static int editIndex = 1; editIndex = std::clamp(editIndex, 1, std::max(1, b.capacity));
+        if (InputIntClamped("Edit Slot Index (1 = bottom)", &editIndex, 1, std::max(1, b.capacity))) {
+            editIndex = std::clamp(editIndex, 1, std::max(1, b.capacity));
+        }
+        int slotIndex = editIndex - 1;
+        if (slotIndex < (int)b.slots.size()) {
+            int ec = b.slots[slotIndex].c; if (ec < 0) ec = 0; if (ec > p.numColors) ec = p.numColors;
+            if (InputIntClamped("Edit Slot Color (0 = empty)", &ec, 0, p.numColors)) { b.slots[slotIndex].c = (Color)ec; s.refreshLocks(); }
+            bool h = b.slots[slotIndex].hidden; if (ImGui::Checkbox("? Hidden", &h)) { b.slots[slotIndex].hidden = h; }
         }
         else {
             ImGui::TextDisabled("(Index beyond current height)");
         }
 
         ImGui::Separator();
-        ImGui::Text("? toggles by slot (0..capacity-1)");
+        ImGui::Text("? toggles by slot (1 = bottom)");
         for (int k = 0; k < b.capacity; ++k) {
             bool h = (k < (int)b.slots.size()) ? b.slots[k].hidden : false;
-            std::string lbl = "? slot " + std::to_string(k);
+            std::string lbl = "? slot " + std::to_string(k + 1);
             if (ImGui::Checkbox(lbl.c_str(), &h)) {
                 if (k < (int)b.slots.size()) { b.slots[k].hidden = h; s.refreshLocks(); }
             }
@@ -243,12 +267,16 @@ namespace ws {
         if ((int)tpl.B.size() != p.numBottles) syncTemplateWithParams();
 
         static int tb = 0; tb = std::clamp(tb, 0, (int)tpl.B.size() - 1);
-        ImGui::SliderInt("Bottle", &tb, 0, (int)tpl.B.size() - 1);
+        int displayTemplateBottle = tb + 1;
+        if (InputIntClamped("Bottle", &displayTemplateBottle, 1, (int)tpl.B.size())) {
+            tb = displayTemplateBottle - 1;
+        }
         auto& b = tpl.B[tb];
+        ImGui::Text("Editing Bottle #%d", tb + 1);
         ImGui::Text("Capacity=%d  Current height=%d", b.capacity, (int)b.slots.size());
 
         int h = (int)b.slots.size();
-        if (ImGui::SliderInt("Initial height", &h, 0, p.capacity)) {
+        if (InputIntClamped("Initial height", &h, 0, p.capacity)) {
             if (h < (int)b.slots.size()) b.slots.resize(h);
             else while ((int)b.slots.size() < h) b.slots.push_back(Slot{ 1,false }); // placeholder
         }
@@ -261,16 +289,16 @@ namespace ws {
         b.gimmick.kind = (StackGimmickKind)kind;
         if (kind == 1) {
             int ct = b.gimmick.clothTarget; if (ct < 1) ct = 1; if (ct > p.numColors) ct = p.numColors;
-            ImGui::SliderInt("Cloth Target Color", &ct, 1, p.numColors); b.gimmick.clothTarget = (Color)ct;
+            if (InputIntClamped("Cloth Target Color", &ct, 1, p.numColors)) { b.gimmick.clothTarget = (Color)ct; }
         }
 
         ImGui::Separator();
-        ImGui::Text("? Hidden per slot (0 = bottom)");
+        ImGui::Text("? Hidden per slot (1 = bottom)");
         for (int k = 0; k < b.capacity; ++k) {
             bool enabled = k < (int)b.slots.size();
             bool h = enabled ? b.slots[k].hidden : false;
             if (!enabled) ImGui::BeginDisabled();
-            std::string lbl = "? slot " + std::to_string(k);
+            std::string lbl = "? slot " + std::to_string(k + 1);
             if (ImGui::Checkbox(lbl.c_str(), &h) && enabled) {
                 b.slots[k].hidden = h;
             }
