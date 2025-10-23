@@ -77,8 +77,8 @@ namespace ws {
         if (InputIntClamped("Mix min", &opt.mixMin, 10, 300, 5, 20)) {
             if (opt.mixMax < opt.mixMin) opt.mixMax = opt.mixMin;
         }
-        InputIntClamped("Mix max", &opt.mixMax, opt.mixMin, 400, 5, 20);
-        InputIntClamped("Solve ms", &opt.solveTimeMs, 200, 5000, 10, 100);
+        InputIntClamped("Mix max", &opt.mixMax, opt.mixMin, 1000, 5, 20);
+        InputIntClamped("Solve ms", &opt.solveTimeMs, 200, 10000, 10, 100);
         InputIntClamped("Count (N)", &NtoGenerate, 1, 50);
         ImGui::Separator();
         ImGui::Text("Start State");
