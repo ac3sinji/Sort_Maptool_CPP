@@ -16,7 +16,12 @@ namespace ws {
         for (auto& b : tpl.B) b.capacity = p.capacity;
     }
 
-    void AppUI::ensureIndex(int idx) { if (idx >= 0 && idx < (int)generated.size()) currentIndex = idx; }
+    void AppUI::ensureIndex(int idx) {
+        if (idx >= 0 && idx < (int)generated.size()) {
+            currentIndex = idx;
+            viewIndexInput = idx + 1;
+        }
+    }
 
     static bool InputIntClamped(const char* label, int* value, int minValue, int maxValue, int step = 1, int stepFast = 5) {
         if (minValue > maxValue) std::swap(minValue, maxValue);
@@ -80,11 +85,15 @@ namespace ws {
                     if (g) generated.push_back(*g);
                 }
             }
-            if (currentIndex < 0 && !generated.empty()) currentIndex = 0;
+            if (currentIndex < 0 && !generated.empty()) ensureIndex(0);
         }
 
         ImGui::SameLine();
-        if (ImGui::Button("Clear Memory")) { generated.clear(); currentIndex = -1; }
+        if (ImGui::Button("Clear Memory")) {
+            generated.clear();
+            currentIndex = -1;
+            viewIndexInput = 1;
+        }
 
         ImGui::Separator();
         ImGui::InputText("Save CSV", savePath.data(), 256);
@@ -102,20 +111,28 @@ namespace ws {
 
         ImGui::InputText("Load CSV", loadPath.data(), 256);
         if (ImGui::Button("Load")) {
-            generated.clear(); currentIndex = -1;
+            generated.clear(); currentIndex = -1; viewIndexInput = 1;
             auto rows = CsvIO::load(loadPath);
             for (const auto& r : rows) {
                 State s; if (CsvIO::decode(r, s)) {
                     Generated g; g.state = std::move(s); g.mixCount = r.MixCount; g.minMoves = r.MinMoves; g.diffScore = r.DifficultyScore; g.diffLabel = r.DifficultyLabel; generated.push_back(std::move(g));
                 }
             }
-            if (!generated.empty()) currentIndex = 0;
+            if (!generated.empty()) ensureIndex(0);
         }
 
         ImGui::Separator();
         ImGui::Text("View by index");
-        static int idxInput = 0; ImGui::InputInt("Map #", &idxInput);
-        if (ImGui::Button("Show")) ensureIndex(idxInput);
+        bool hasMaps = !generated.empty();
+        int maxIndex = hasMaps ? (int)generated.size() : 1;
+        viewIndexInput = std::clamp(viewIndexInput, 1, maxIndex);
+        int inputValue = viewIndexInput;
+        if (!hasMaps) ImGui::BeginDisabled();
+        if (InputIntClamped("Map #", &inputValue, 1, maxIndex)) {
+            viewIndexInput = inputValue;
+            if (hasMaps) ensureIndex(viewIndexInput - 1);
+        }
+        if (!hasMaps) ImGui::EndDisabled();
 
         ImGui::End();
     }
