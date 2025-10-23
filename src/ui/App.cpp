@@ -10,16 +10,47 @@
 
 namespace ws {
 
-    AppUI::AppUI() :p{ 6,8,4 }, opt{}, gen(p, opt) {
+    AppUI::AppUI() :p{ 6,8,4 }, opt{} {
         tpl.p = p;
         tpl.B.resize(p.numBottles);
         for (auto& b : tpl.B) b.capacity = p.capacity;
+    }
+
+    AppUI::~AppUI() {
+        if (generationThread.joinable()) {
+            generationThread.join();
+        }
     }
 
     void AppUI::ensureIndex(int idx) {
         if (idx >= 0 && idx < (int)generated.size()) {
             currentIndex = idx;
             viewIndexInput = idx + 1;
+        }
+    }
+
+    void AppUI::collectGenerated() {
+        if (!isGenerating.load() && generationThread.joinable()) {
+            generationThread.join();
+            generationTotal = 0;
+            generationCompleted.store(0);
+        }
+
+        std::vector<Generated> newly;
+        {
+            std::lock_guard<std::mutex> lock(pendingMutex);
+            if (!pendingGenerated.empty()) {
+                newly.swap(pendingGenerated);
+            }
+        }
+
+        if (!newly.empty()) {
+            bool hadAny = !generated.empty();
+            for (auto& g : newly) {
+                generated.push_back(std::move(g));
+            }
+            if (currentIndex < 0 && !generated.empty()) ensureIndex(0);
+            else if (!hadAny && !generated.empty()) ensureIndex(0);
         }
     }
 
@@ -33,6 +64,8 @@ namespace ws {
     }
 
     void AppUI::drawTopBar() {
+        collectGenerated();
+
         ImGui::Begin("Controls");
         ImGui::Text("Params");
         bool pChanged = false;
@@ -68,24 +101,58 @@ namespace ws {
                 ImGui::TextColored(ImVec4(0.6f, 1, 0.6f, 1), "Template OK (sum=%lld)", sumH);
         }
 
+        bool currentlyGenerating = isGenerating.load();
+        if (currentlyGenerating) ImGui::BeginDisabled();
         if (ImGui::Button("Generate N")) {
-            gen = Generator(p, opt);
+            bool canGenerate = true;
             if (useTemplate) {
-                if (sumH == expected) {
-                    gen.setBase(tpl);               // 템플릿(높이+기믹) 전달
-                    for (int i = 0; i < NtoGenerate; ++i) {
-                        auto g = gen.makeOne(nullptr);
-                        if (g) generated.push_back(*g);
+                if (sumH != expected) canGenerate = false;
+            }
+            if (canGenerate) {
+                Params pCopy = p;
+                GenOptions optCopy = opt;
+                State tplCopy = tpl;
+                int count = NtoGenerate;
+                bool useTemplateNow = useTemplate && sumH == expected;
+
+                if (generationThread.joinable()) generationThread.join();
+                generationTotal = count;
+                generationCompleted.store(0);
+                isGenerating.store(true);
+
+                generationThread = std::thread([this, pCopy, optCopy, tplCopy, count, useTemplateNow]() mutable {
+                    Generator localGen(pCopy, optCopy);
+                    if (useTemplateNow) {
+                        localGen.setBase(tplCopy);
                     }
-                } // sum이 안 맞으면 생성 안 함
+                    std::vector<Generated> local;
+                    local.reserve(count);
+                    for (int i = 0; i < count; ++i) {
+                        auto g = localGen.makeOne(nullptr);
+                        if (g) {
+                            local.push_back(std::move(*g));
+                        }
+                        generationCompleted.fetch_add(1);
+                    }
+                    {
+                        std::lock_guard<std::mutex> lock(pendingMutex);
+                        for (auto& item : local) {
+                            pendingGenerated.push_back(std::move(item));
+                        }
+                    }
+                    isGenerating.store(false);
+                });
             }
-            else {
-                for (int i = 0; i < NtoGenerate; ++i) {
-                    auto g = gen.makeOne(nullptr);
-                    if (g) generated.push_back(*g);
-                }
-            }
-            if (currentIndex < 0 && !generated.empty()) ensureIndex(0);
+        }
+        if (currentlyGenerating) ImGui::EndDisabled();
+
+        if (isGenerating.load()) {
+            ImGui::SameLine();
+            int total = generationTotal;
+            int done = generationCompleted.load();
+            if (total < 1) total = 1;
+            if (done > total) done = total;
+            ImGui::TextColored(ImVec4(0.9f, 0.8f, 0.3f, 1.0f), "Generating Maps... %d/%d", done, total);
         }
 
         ImGui::SameLine();
