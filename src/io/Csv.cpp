@@ -13,11 +13,16 @@ namespace ws {
             if (!b.slots.empty()) {
                 // write bottom->top colors and pad remaining capacity with explicit zeros (top-most positions)
                 for (int k = 0; k < b.capacity; ++k) {
-                    if (k < (int)b.slots.size()) oss << int(b.slots[k].c);
-                    else oss << '0';
+                    if (k > 0) oss << '_';
+                    if (k < (int)b.slots.size()) {
+                        oss << int(b.slots[k].c);
+                    }
+                    else {
+                        oss << '0';
+                    }
                 }
             }
-            if (i + 1 < s.B.size()) oss << '#'; else oss << "";
+            if (i + 1 < s.B.size()) oss << '#';
         }
         return oss.str();
     }
@@ -26,9 +31,12 @@ namespace ws {
         std::ostringstream oss;
         for (size_t i = 0; i < s.B.size(); ++i) {
             const auto& b = s.B[i];
+            bool first = true;
             for (int k = 0; k < b.capacity; ++k) {
                 int bit = (k < (int)b.slots.size() && b.slots[k].hidden) ? 1 : 0;
+                if (!first) oss << '_';
                 oss << bit;
+                first = false;
             }
             if (i + 1 < s.B.size()) oss << '#';
         }
@@ -79,12 +87,24 @@ namespace ws {
             auto& b = s.B[i];
             const auto& token = cols[i];
             b.slots.clear();
-            for (char ch : token) {
-                if (ch < '0' || ch > '9') continue;
-                int v = ch - '0';
-                if (v == 0) continue; // padded empty cell
-                if ((int)b.slots.size() >= b.capacity) break;
-                b.slots.push_back(Slot{ (Color)v,false });
+            if (token.find('_') != std::string::npos) {
+                auto values = split(token, '_');
+                for (const auto& value : values) {
+                    if (value.empty()) continue;
+                    int v = std::stoi(value);
+                    if (v == 0) continue; // padded empty cell
+                    if ((int)b.slots.size() >= b.capacity) break;
+                    b.slots.push_back(Slot{ (Color)v, false });
+                }
+            }
+            else {
+                for (char ch : token) {
+                    if (ch < '0' || ch > '9') continue;
+                    int v = ch - '0';
+                    if (v == 0) continue; // padded empty cell
+                    if ((int)b.slots.size() >= b.capacity) break;
+                    b.slots.push_back(Slot{ (Color)v, false });
+                }
             }
         }
 
@@ -94,8 +114,16 @@ namespace ws {
             const auto& mask = sg[i];
             auto& b = s.B[i];
             // ensure we have exactly capacity digits
-            for (int k = 0; k < b.capacity && k < (int)mask.size(); ++k) {
-                if (k < (int)b.slots.size()) b.slots[k].hidden = (mask[k] == '1');
+            if (mask.find('_') != std::string::npos) {
+                auto bits = split(mask, '_');
+                for (int k = 0; k < b.capacity && k < (int)bits.size(); ++k) {
+                    if (k < (int)b.slots.size()) b.slots[k].hidden = (bits[k] == "1");
+                }
+            }
+            else {
+                for (int k = 0; k < b.capacity && k < (int)mask.size(); ++k) {
+                    if (k < (int)b.slots.size()) b.slots[k].hidden = (mask[k] == '1');
+                }
             }
         }
 
