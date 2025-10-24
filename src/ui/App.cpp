@@ -245,6 +245,15 @@ namespace ws {
                     if (b.slots[k].hidden) col = IM_COL32(90, 90, 90, 255);
                 }
                 dl->AddRectFilled(ImVec2(x + 2, yTop + 2), ImVec2(x + bottleW - 2, yTop + cell - 2), col, 3.0f);
+                if (k < (int)b.slots.size() && b.slots[k].hidden) {
+                    const char* hiddenMark = "?";
+                    ImVec2 textSize = ImGui::CalcTextSize(hiddenMark);
+                    ImVec2 textPos(
+                        x + (bottleW - textSize.x) * 0.5f,
+                        yTop + (cell - textSize.y) * 0.5f
+                    );
+                    dl->AddText(textPos, IM_COL32(255, 255, 255, 255), hiddenMark);
+                }
             }
             // gimmick badge
             std::string badge = ""; auto kind = b.gimmick.kind;
