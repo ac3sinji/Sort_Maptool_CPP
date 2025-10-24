@@ -211,6 +211,7 @@ namespace ws {
             std::vector<Color> reservedColor(p.numBottles, 0);
             std::vector<int> reservedCount(p.numBottles, 0);
             std::vector<int> reservedLimit(p.numBottles, std::numeric_limits<int>::max());
+            std::vector<Color> vineFixedColor(p.numBottles, 0);
 
             for (const auto& spec : plan) {
                 if (spec.bottle < 0 || spec.bottle >= p.numBottles) continue;
@@ -251,18 +252,35 @@ namespace ws {
                 return len;
             };
 
+            auto respectsVine = [&](int bi, Color c) -> bool {
+                const auto& B = st.B[bi];
+                if (B.gimmick.kind != StackGimmickKind::Vine) return true;
+                Color fixed = vineFixedColor[bi];
+                if (fixed == 0 && !B.slots.empty()) {
+                    fixed = B.slots.front().c;
+                    for (const auto& s : B.slots) {
+                        if (s.c != fixed) return false;
+                    }
+                }
+                return fixed == 0 || c == fixed;
+                };
+
             auto allowed = [&](int bi, Color c)->bool {
                 const auto& B = st.B[bi];
                 if ((int)B.slots.size() >= heights[bi]) return false;
                 if (B.gimmick.kind == StackGimmickKind::Cloth && B.gimmick.clothTarget == c) return false;
                 if (reservedColor[bi] == c && reservedCount[bi] >= reservedLimit[bi]) return false;
                 if (opt.maxRunPerBottle > 0 && runlen(B, c) >= opt.maxRunPerBottle) return false;
+                if (!respectsVine(bi, c)) return false;
                 return true;
                 };
 
             auto placeColor = [&](int bi, Color c) {
                 st.B[bi].slots.push_back(Slot{ c,false });
                 if (reservedColor[bi] == c) ++reservedCount[bi];
+                if (st.B[bi].gimmick.kind == StackGimmickKind::Vine) {
+                    if (vineFixedColor[bi] == 0) vineFixedColor[bi] = c;
+                }
                 };
 
             for (Color c : bag) {
@@ -287,6 +305,7 @@ namespace ws {
                     for (int bi = 0; bi < p.numBottles && !placed; ++bi) {
                         if ((int)st.B[bi].slots.size() >= heights[bi]) continue;
                         if (reservedColor[bi] == c && reservedCount[bi] >= reservedLimit[bi]) continue;
+                        if (!respectsVine(bi, c)) continue;
                         placeColor(bi, c);
                         placed = true;
                     }
@@ -294,6 +313,7 @@ namespace ws {
                 if (!placed) {
                     for (int bi = 0; bi < p.numBottles; ++bi) {
                         if ((int)st.B[bi].slots.size() < heights[bi]) {
+                            if (!respectsVine(bi, c)) continue;
                             placeColor(bi, c);
                             break;
                         }
@@ -384,6 +404,7 @@ namespace ws {
             bool changed = false;
             for (size_t i = 0; i < st.B.size(); ++i) {
                 auto& mono = st.B[i];
+                if (mono.gimmick.kind == StackGimmickKind::Vine) continue;
                 if (!hasMonoFull(mono)) continue;
                 Color monoColor = mono.slots.empty() ? 0 : mono.slots[0].c;
                 bool swapped = false;
@@ -391,6 +412,7 @@ namespace ws {
                 for (size_t j = 0; j < st.B.size() && !swapped; ++j) {
                     if (j == i) continue;
                     auto& other = st.B[j];
+                    if (other.gimmick.kind == StackGimmickKind::Vine) continue;
                     for (size_t idx = 0; idx < other.slots.size(); ++idx) {
                         if (other.slots[idx].c == monoColor) continue;
                         size_t monoIdx = (size_t)rng.irange(0, mono.size() - 1);
@@ -408,6 +430,7 @@ namespace ws {
                     for (size_t j = 0; j < st.B.size(); ++j) {
                         if (j == i) continue;
                         auto& other = st.B[j];
+                        if (other.gimmick.kind == StackGimmickKind::Vine) continue;
                         if (other.slots.empty()) continue;
                         std::swap(mono.slots.back(), other.slots.back());
                         if (!mono.isMonoFull()) {
