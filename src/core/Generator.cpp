@@ -90,7 +90,7 @@ namespace ws {
             auto res = solver.solve(s);
             if (res.solved) {
                 Generated g; g.state = s; g.mixCount = mix; g.minMoves = res.minMoves;
-                g.diffScore = solver.estimateDifficulty(s, res.minMoves);
+                g.diffScore = solver.estimateDifficulty(s, res);
                 g.diffLabel = labelForScore(g.diffScore);
                 return g;
             }

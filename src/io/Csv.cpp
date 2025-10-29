@@ -10,7 +10,10 @@ namespace ws {
         std::ostringstream oss;
         for (size_t i = 0; i < s.B.size(); ++i) {
             const auto& b = s.B[i];
-            if (!b.slots.empty()) {
+            if (b.slots.empty()) {
+                oss << '0';
+            }
+            else {
                 // write bottom->top colors and pad remaining capacity with explicit zeros (top-most positions)
                 for (int k = 0; k < b.capacity; ++k) {
                     if (k > 0) oss << '_';

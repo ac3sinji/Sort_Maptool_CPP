@@ -27,11 +27,88 @@ namespace ws {
         return h;
     }
 
+    struct SolutionCountResult {
+        int count{ 0 };
+        bool exhaustive{ false };
+        bool timedOut{ false };
+        bool limitHit{ false };
+    };
+
+    static SolutionCountResult countMinimalSolutions(const State& start, int depthLimit, int maxCount, const std::function<bool()>& timeOk) {
+        SolutionCountResult result;
+        if (depthLimit < 0) {
+            result.exhaustive = true;
+            return result;
+        }
+
+        std::unordered_map<size_t, int> bestDepth;
+        bestDepth.reserve(4096);
+        bestDepth[start.hash()] = 0;
+
+        std::function<void(const State&, int)> dfs = [&](const State& cur, int depth) {
+            if (result.timedOut || result.limitHit) return;
+            if (!timeOk()) { result.timedOut = true; return; }
+
+            if (cur.isSolved()) {
+                if (depth <= depthLimit) {
+                    ++result.count;
+                    if (result.count >= maxCount) {
+                        result.limitHit = true;
+                    }
+                }
+                return;
+            }
+
+            if (depth >= depthLimit) return;
+
+            struct Candidate { Move m; bool prefer; };
+            std::vector<Candidate> cand;
+            cand.reserve(cur.B.size() * cur.B.size());
+
+            for (int i = 0; i < (int)cur.B.size(); ++i) {
+                for (int j = 0; j < (int)cur.B.size(); ++j) {
+                    if (i == j) continue;
+                    int amt = 0;
+                    if (!cur.canPour(i, j, &amt)) continue;
+                    bool prefer = !cur.B[j].isEmpty() && cur.B[i].topColor() == cur.B[j].topColor();
+                    cand.push_back({ Move{i,j,amt}, prefer });
+                }
+            }
+
+            std::stable_sort(cand.begin(), cand.end(), [](const Candidate& a, const Candidate& b) {
+                return a.prefer > b.prefer;
+                });
+
+            for (const auto& c : cand) {
+                State next = cur;
+                next.apply(c.m);
+                size_t h = next.hash();
+                auto it = bestDepth.find(h);
+                if (it != bestDepth.end() && it->second <= depth + 1) continue;
+                bestDepth[h] = depth + 1;
+                dfs(next, depth + 1);
+                if (result.timedOut || result.limitHit) return;
+            }
+            };
+
+        dfs(start, 0);
+        result.exhaustive = !result.timedOut && !result.limitHit;
+        return result;
+    }
+
     SolveResult Solver::solve(const State& start) {
         using clock = std::chrono::steady_clock;
         auto t0 = clock::now();
 
-        if (start.isSolved()) return { true, 0 };
+        SolveResult result;
+
+        if (start.isSolved()) {
+            result.solved = true;
+            result.minMoves = 0;
+            result.distinctSolutions = 1;
+            result.solutionCountExhaustive = true;
+            return result;
+        }
 
         int bound = heuristic(start);
 
@@ -39,13 +116,15 @@ namespace ws {
 
         // IDA* search
         std::unordered_set<size_t> visited;
-        std::vector<Move> moves;
+        bool searchTimedOut = false;
+        int solvedDepth = -1;
 
-        std::function<int(const State&, int, int)> dfs = [&](const State& s, int g, int bound) {
+        std::function<int(const State&, int, int)> dfs = [&](const State& s, int g, int boundVal) {
+            if (!timeOk()) { searchTimedOut = true; return std::numeric_limits<int>::max(); }
+
             int f = g + heuristic(s);
-            if (f > bound) return f;
+            if (f > boundVal) return f;
             if (s.isSolved()) return -g; // found, return negative depth
-            if (!timeOk()) return std::numeric_limits<int>::max();
 
             size_t h = s.hash();
             if (visited.count(h)) return std::numeric_limits<int>::max();
@@ -66,27 +145,67 @@ namespace ws {
 
             for (const auto& c : cand) {
                 State s2 = s; s2.apply(c.m);
-                int t = dfs(s2, g + 1, bound);
+                int t = dfs(s2, g + 1, boundVal);
                 if (t < 0) return t; // solved at depth g'
                 if (t < minNext) minNext = t;
-                if (!timeOk()) break;
+                if (searchTimedOut) break;
             }
             return minNext;
         };
 
-        for (;;) {
+        while (true) {
+            if (!timeOk()) { searchTimedOut = true; break; }
             visited.clear();
             int t = dfs(start, 0, bound);
-            if (t < 0) { return { true, -t }; }
-            if (t == std::numeric_limits<int>::max() || !timeOk()) {
-                // time budget exceeded; return best bound as estimate (not exact)
-                return { false, bound };
+            if (t < 0) {
+                solvedDepth = -t;
+                result.solved = true;
+                break;
+            }
+            if (searchTimedOut || t == std::numeric_limits<int>::max()) {
+                searchTimedOut = true;
+                break;
             }
             bound = t;
         }
+
+        if (!result.solved) {
+            result.timedOut = searchTimedOut;
+            result.minMoves = bound;
+            return result;
+        }
+
+        result.minMoves = solvedDepth;
+        result.distinctSolutions = 1;
+
+        if (!timeOk()) {
+            result.timedOut = true;
+            return result;
+        }
+
+        const int solutionSampleLimit = 4;
+        auto countStats = countMinimalSolutions(start, solvedDepth, solutionSampleLimit, timeOk);
+        if (countStats.timedOut) {
+            result.timedOut = true;
+        }
+        if (countStats.count > 0) {
+            result.distinctSolutions = countStats.count;
+        }
+        result.solutionCountExhaustive = countStats.exhaustive;
+        result.solutionCountLimited = countStats.limitHit;
+        if (!result.solutionCountExhaustive) {
+            // ensure we report at least one known optimal route
+            result.distinctSolutions = std::max(1, result.distinctSolutions);
+        }
+        if (!timeOk()) {
+            result.timedOut = true;
+        }
+
+        return result;
     }
 
-    double Solver::estimateDifficulty(const State& s, int minMoves) const {
+    double Solver::estimateDifficulty(const State& s, const SolveResult& solveStats) const {
+        const int minMoves = solveStats.minMoves;
         // Compose from heuristic features with softer contribution from gimmicks.
         const int colors = s.p.numColors;
         const int bottles = static_cast<int>(s.B.size());
@@ -118,7 +237,19 @@ namespace ws {
             if (groups > 1) fragmentation += static_cast<double>(groups - 1);
         }
         const double fragmentationComponent = std::min(15.0, fragmentation * 1.25);
-        const double hiddenComponent = std::min(8.0, hiddenSlots * 0.7);
+        const int hiddenFree = 2;
+        const int hiddenCap = 7;
+        const double hiddenMaxScore = 6.0;
+        double hiddenComponent = 0.0;
+        if (hiddenSlots > hiddenFree) {
+            if (hiddenSlots >= hiddenCap) {
+                hiddenComponent = hiddenMaxScore;
+            }
+            else {
+                double t = static_cast<double>(hiddenSlots - hiddenFree) / static_cast<double>(hiddenCap - hiddenFree);
+                hiddenComponent = hiddenMaxScore * t;
+            }
+        }
 
         // Evaluate gimmick intensity. Weight each gimmick by type and fill state, then saturate.
         double gimmickWeight = 0.0;
@@ -144,7 +275,32 @@ namespace ws {
         // Additional subtle scaling by colour variety beyond the default palette.
         const double colorComponent = std::min(7.0, std::max(0, colors - 5) * 1.2);
 
-        double score = moveComponent + heuristicComponent + fragmentationComponent + hiddenComponent + gimmickComponent + colorComponent;
+        // Reward/punish based on how many optimal answers the puzzle offers.
+        double solutionComponent = 0.0;
+        if (solveStats.solved) {
+            const int solutionCount = std::max(1, solveStats.distinctSolutions);
+            if (solveStats.solutionCountExhaustive) {
+                if (solutionCount == 1) {
+                    solutionComponent = 6.0; // single-path puzzles feel tighter
+                }
+                else if (solutionCount == 2) {
+                    solutionComponent = 2.5; // a couple of options still require planning
+                }
+                else {
+                    solutionComponent = -4.0; // many optimal lines make the stage feel forgiving
+                }
+            }
+            else {
+                if (!solveStats.timedOut && solutionCount == 1 && !solveStats.solutionCountLimited) {
+                    solutionComponent = 3.0; // likely unique but not fully proven
+                }
+                else if (solveStats.solutionCountLimited || solutionCount >= 3) {
+                    solutionComponent = -3.0; // early saturation indicates abundance of answers
+                }
+            }
+        }
+
+        double score = moveComponent + heuristicComponent + fragmentationComponent + hiddenComponent + gimmickComponent + colorComponent + solutionComponent;
 
         if (score < 0.0) score = 0.0;
         if (score > 100.0) score = 100.0;
