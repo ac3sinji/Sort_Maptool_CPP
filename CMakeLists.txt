@@ -17,6 +17,7 @@ FetchContent_MakeAvailable(imgui)
 find_package(SDL2 CONFIG REQUIRED)
 
 add_executable(watersort
+  WIN32
   src/main.cpp
   src/core/Types.hpp
   src/core/State.hpp
