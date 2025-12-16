@@ -3,6 +3,7 @@
 #include "Solver.hpp"
 #include <algorithm>
 #include <limits>
+#include <numeric>
 
 namespace ws {
 
@@ -27,7 +28,7 @@ namespace ws {
             return std::nullopt;
         }
 
-        auto heights = computeDefaultHeights();
+        auto heights = opt.randomizeHeights ? computeRandomizedHeights() : computeDefaultHeights();
         std::vector<int> candidates;
         candidates.reserve(p.numBottles);
         for (int i = 0; i < p.numBottles; ++i) {
@@ -39,7 +40,8 @@ namespace ws {
         int usableSlots = (int)candidates.size();
         int limit = std::min(reserveAware, usableSlots);
         if (requested > limit) {
-            setReason("Not enough fillable bottles to satisfy requested gimmick counts (" +
+            std::string heightNote = opt.randomizeHeights ? " after random height allocation" : "";
+            setReason("Not enough fillable bottles" + heightNote + " to satisfy requested gimmick counts (" +
                 std::to_string(requested) + " requested, " + std::to_string(limit) + " available).");
             return std::nullopt;
         }
@@ -217,6 +219,53 @@ namespace ws {
             heights[idx] = take;
             cells -= take;
         }
+        return heights;
+    }
+
+    std::vector<int> Generator::computeRandomizedHeights() {
+        std::vector<int> heights(p.numBottles, 0);
+        if (p.numBottles <= 0) return heights;
+
+        long long remainingCells = 1ll * p.numColors * p.capacity;
+        if (remainingCells <= 0) return heights;
+
+        int fillable = std::clamp(p.numBottles - std::max(0, opt.reservedEmpty), 1, p.numBottles);
+        std::vector<int> order(p.numBottles);
+        std::iota(order.begin(), order.end(), 0);
+        for (size_t i = 0; i < order.size(); ++i) {
+            size_t j = (size_t)rng.irange((int)i, (int)order.size() - 1);
+            std::swap(order[i], order[j]);
+        }
+
+        auto distributeGroup = [&](const std::vector<int>& group, long long budget) {
+            long long give = std::min<long long>({ budget, remainingCells, 1ll * (int)group.size() * p.capacity });
+            long long local = give;
+            for (size_t idx = 0; idx < group.size() && local > 0; ++idx) {
+                int bottle = group[idx];
+                int left = (int)(group.size() - idx - 1);
+                long long maxRemainingCapacity = 1ll * left * p.capacity;
+                int minTake = (int)std::max<long long>(0, local - maxRemainingCapacity);
+                int maxTake = (int)std::min<long long>(p.capacity, local);
+                if (local > left) {
+                    minTake = std::max(1, minTake);
+                }
+                if (minTake > maxTake) minTake = maxTake;
+                int take = (left == 0) ? maxTake : rng.irange(minTake, maxTake);
+                heights[bottle] = take;
+                local -= take;
+            }
+            long long used = give - local;
+            remainingCells -= used;
+        };
+
+        std::vector<int> primary(order.begin(), order.begin() + fillable);
+        distributeGroup(primary, remainingCells);
+
+        if (remainingCells > 0 && fillable < p.numBottles) {
+            std::vector<int> secondary(order.begin() + fillable, order.end());
+            distributeGroup(secondary, remainingCells);
+        }
+
         return heights;
     }
 

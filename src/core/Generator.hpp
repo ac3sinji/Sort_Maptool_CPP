@@ -17,6 +17,7 @@ namespace ws {
         bool startMixed{ true };      // 섞인 상태로 시작(기본 true)
         int  reservedEmpty{ 2 };      // 초기 상태에서 비워둘 병 개수(일반적으로 2)
         int  maxRunPerBottle{ 2 };    // 한 병 안에서 같은 색이 연속으로 허용되는 최대 길이(섞임 유지)
+        bool randomizeHeights{ true }; // 랜덤 높이 배분 사용 여부 (auto template)
     };
 
     struct Generated { State state; int mixCount{ 0 }; int minMoves{ -1 }; double diffScore{ 0.0 }; std::string diffLabel; };
@@ -48,6 +49,7 @@ namespace ws {
         State createRandomMixedFromHeights(const State& baseTpl); // NEW
         struct SupportSpec { int bottle{ -1 }; Color color{ 0 }; };
         std::vector<int> computeDefaultHeights() const;
+        std::vector<int> computeRandomizedHeights();
         std::vector<int> computeHeightsFromTemplate(const State& baseTpl) const;
         std::vector<SupportSpec> buildSupportPlan(const std::vector<int>& heights) const;
         State createRandomMixedWithHeights(const std::vector<int>& heights);
