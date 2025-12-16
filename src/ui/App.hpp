@@ -17,6 +17,10 @@ namespace ws {
 
     private:
         Params p; GenOptions opt; int NtoGenerate{ 5 };
+        int autoCount{ 5 }; // maps to generate with auto template per request
+        int clothCount{ 0 };
+        int vineCount{ 0 };
+        int bushCount{ 0 };
         std::vector<Generated> generated; // in‑memory pool
         int currentIndex{ -1 };
         int viewIndexInput{ 1 };
@@ -24,6 +28,8 @@ namespace ws {
         std::string loadPath{ "maps.csv" };
         State tpl;                 // 생성용 템플릿(병별 초기 높이 + 기믹)
         bool useTemplate{ true };    // Generate 시 템플릿 사용 여부
+        std::string statusMessage;  // last user‑visible status/error
+        std::mutex statusMutex;
 
         std::atomic<bool> isGenerating{ false };
         std::atomic<int> generationCompleted{ 0 };
@@ -39,6 +45,8 @@ namespace ws {
         void drawTemplate();           // 템플릿 편집창
         void syncTemplateWithParams(); // Colors/Bottles/Capacity 바뀔 때 템플릿 맞춰주기
         void collectGenerated();
+        void setStatus(const std::string& msg);
+        std::string getStatus();
 
         void ensureIndex(int idx);
     };

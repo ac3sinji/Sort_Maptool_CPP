@@ -10,6 +10,108 @@ namespace ws {
 
     void Generator::setBase(const State& b) { base = b; }
 
+    std::optional<State> Generator::buildRandomTemplate(int clothCount, int vineCount, int bushCount, std::string* reason) {
+        auto setReason = [&](const std::string& msg) {
+            if (reason) *reason = msg;
+        };
+        if (reason) reason->clear();
+
+        if (clothCount < 0 || vineCount < 0 || bushCount < 0) {
+            setReason("Gimmick counts must be non-negative.");
+            return std::nullopt;
+        }
+
+        const int requested = clothCount + vineCount + bushCount;
+        if (requested > p.numBottles) {
+            setReason("Requested gimmicks exceed number of bottles.");
+            return std::nullopt;
+        }
+
+        auto heights = computeDefaultHeights();
+        std::vector<int> candidates;
+        candidates.reserve(p.numBottles);
+        for (int i = 0; i < p.numBottles; ++i) {
+            int h = (i < (int)heights.size()) ? heights[i] : 0;
+            if (h > 0) candidates.push_back(i);
+        }
+
+        int reserveAware = std::max(0, p.numBottles - std::max(0, opt.reservedEmpty));
+        int usableSlots = (int)candidates.size();
+        int limit = std::min(reserveAware, usableSlots);
+        if (requested > limit) {
+            setReason("Not enough fillable bottles to satisfy requested gimmick counts (" +
+                std::to_string(requested) + " requested, " + std::to_string(limit) + " available).");
+            return std::nullopt;
+        }
+        long long sumH = 0; for (int h : heights) sumH += h;
+        long long expected = 1ll * p.numColors * p.capacity;
+        if (sumH != expected) {
+            setReason("Template height sum must equal Colors*Capacity.");
+            return std::nullopt;
+        }
+
+        std::vector<Color> bag;
+        bag.reserve((size_t)expected);
+        for (Color c = 1; c <= p.numColors; ++c) {
+            for (int k = 0; k < p.capacity; ++k) bag.push_back(c);
+        }
+        for (size_t i = 0; i < bag.size(); ++i) {
+            size_t j = (size_t)rng.irange((int)i, (int)bag.size() - 1);
+            std::swap(bag[i], bag[j]);
+        }
+
+        for (size_t i = 0; i < candidates.size(); ++i) {
+            size_t j = (size_t)rng.irange((int)i, (int)candidates.size() - 1);
+            std::swap(candidates[i], candidates[j]);
+        }
+
+        State tpl; tpl.p = p; tpl.B.resize(p.numBottles);
+        size_t pos = 0;
+        for (int i = 0; i < p.numBottles; ++i) {
+            tpl.B[i].capacity = p.capacity;
+            auto h = (size_t)heights[i];
+            tpl.B[i].slots.reserve(h);
+            for (size_t k = 0; k < h && pos < bag.size(); ++k, ++pos) {
+                tpl.B[i].slots.push_back(Slot{ bag[pos],false });
+            }
+        }
+
+        auto assignOne = [&](StackGimmickKind kind) {
+            if (candidates.empty()) return false;
+            int idx = candidates.back();
+            candidates.pop_back();
+            auto& g = tpl.B[idx].gimmick;
+            g.kind = kind;
+            if (kind == StackGimmickKind::Cloth) {
+                int target = rng.irange(1, std::max(1, p.numColors));
+                g.clothTarget = (Color)target;
+            }
+            return true;
+            };
+
+        for (int i = 0; i < clothCount; ++i) {
+            if (!assignOne(StackGimmickKind::Cloth)) {
+                setReason("Unable to place all Cloth gimmicks.");
+                return std::nullopt;
+            }
+        }
+        for (int i = 0; i < vineCount; ++i) {
+            if (!assignOne(StackGimmickKind::Vine)) {
+                setReason("Unable to place all Vine gimmicks.");
+                return std::nullopt;
+            }
+        }
+        for (int i = 0; i < bushCount; ++i) {
+            if (!assignOne(StackGimmickKind::Bush)) {
+                setReason("Unable to place all Bush gimmicks.");
+                return std::nullopt;
+            }
+        }
+
+        tpl.refreshLocks();
+        return tpl;
+    }
+
     State Generator::createStartFromInitial(const InitialDistribution* initial) {
         // 템플릿 + startMixed => 템플릿 높이/기믹을 존중해 랜덤 채움으로 시작
         if (base && opt.startMixed && !initial) {

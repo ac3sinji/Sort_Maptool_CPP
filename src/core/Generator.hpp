@@ -2,6 +2,7 @@
 #pragma once
 #include "State.hpp"
 #include <optional>
+#include <string>
 
 namespace ws {
 
@@ -13,9 +14,9 @@ namespace ws {
         int solveTimeMs{ 2500 }; // validation solver budget per attempt
 
         // NEW: start mixed initial state
-        bool startMixed{ true };      // ¼¯ÀÎ »óÅÂ·Î ½ÃÀÛ(±âº» true)
-        int  reservedEmpty{ 2 };      // ÃÊ±â »óÅÂ¿¡¼­ ºñ¿öµÑ º´ °³¼ö(ÀÏ¹İÀûÀ¸·Î 2)
-        int  maxRunPerBottle{ 2 };    // ÇÑ º´ ¾È¿¡¼­ °°Àº »öÀÌ ¿¬¼ÓÀ¸·Î Çã¿ëµÇ´Â ÃÖ´ë ±æÀÌ(¼¯ÀÓ À¯Áö)
+        bool startMixed{ true };      // ì„ì¸ ìƒíƒœë¡œ ì‹œì‘(ê¸°ë³¸ true)
+        int  reservedEmpty{ 2 };      // ì´ˆê¸° ìƒíƒœì—ì„œ ë¹„ì›Œë‘˜ ë³‘ ê°œìˆ˜(ì¼ë°˜ì ìœ¼ë¡œ 2)
+        int  maxRunPerBottle{ 2 };    // í•œ ë³‘ ì•ˆì—ì„œ ê°™ì€ ìƒ‰ì´ ì—°ì†ìœ¼ë¡œ í—ˆìš©ë˜ëŠ” ìµœëŒ€ ê¸¸ì´(ì„ì„ ìœ ì§€)
     };
 
     struct Generated { State state; int mixCount{ 0 }; int minMoves{ -1 }; double diffScore{ 0.0 }; std::string diffLabel; };
@@ -30,6 +31,9 @@ namespace ws {
 
         // Generate one solvable map honoring existing bottle gimmicks in p/B (if provided via setBase)
         std::optional<Generated> makeOne(const InitialDistribution* initial = nullptr);
+
+        // Build a random template honoring params and requested gimmick counts.
+        std::optional<State> buildRandomTemplate(int clothCount, int vineCount, int bushCount, std::string* reason = nullptr);
 
         // Attach current base state (with bottle gimmicks already set from UI). If not set, defaults used.
         void setBase(const State& base);
@@ -49,7 +53,7 @@ namespace ws {
         State createRandomMixedWithHeights(const std::vector<int>& heights);
         bool hasAnyMove(const State& s) const;
         void breakPreSolvedStacks(State& st);
-        void fixClothStart(State& st);                  // Cloth º´ ¾ÈÀÇ Å¸±ê»öÀ» ¸¶Áö¸·¿¡ Á¦°Å(½º¿Ò)ÇÏ´Â ¾ÈÀü¸Á
+        void fixClothStart(State& st);                  // Cloth ë³‘ ì•ˆì˜ íƒ€ê¹ƒìƒ‰ì„ ë§ˆì§€ë§‰ì— ì œê±°(ìŠ¤ì™‘)í•˜ëŠ” ì•ˆì „ë§
     };
 
 } // namespace ws
