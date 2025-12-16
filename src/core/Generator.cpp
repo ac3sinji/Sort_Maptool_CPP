@@ -36,9 +36,8 @@ namespace ws {
             if (h > 0) candidates.push_back(i);
         }
 
-        int reserveAware = std::max(0, p.numBottles - std::max(0, opt.reservedEmpty));
         int usableSlots = (int)candidates.size();
-        int limit = std::min(reserveAware, usableSlots);
+        int limit = usableSlots; // 랜덤 높이 배분으로 reserveEmpty를 초과해 채울 수 있으므로 실제 채워진 병 수를 기준으로 제한
         if (requested > limit) {
             std::string heightNote = opt.randomizeHeights ? " after random height allocation" : "";
             setReason("Not enough fillable bottles" + heightNote + " to satisfy requested gimmick counts (" +
@@ -226,10 +225,23 @@ namespace ws {
         std::vector<int> heights(p.numBottles, 0);
         if (p.numBottles <= 0) return heights;
 
-        long long remainingCells = 1ll * p.numColors * p.capacity;
-        if (remainingCells <= 0) return heights;
+        const long long totalCells = 1ll * p.numColors * p.capacity;
+        if (totalCells <= 0) return heights;
 
-        int fillable = std::clamp(p.numBottles - std::max(0, opt.reservedEmpty), 1, p.numBottles);
+        // 최소로 필요한 병 수(모두 가득 찼을 때)
+        int minActive = (int)((totalCells + p.capacity - 1) / p.capacity);
+        // 기본적으로 reservedEmpty를 존중하되, 변주를 위해 필요한 경우 더 많은 병을 사용
+        int preferredActive = std::clamp(p.numBottles - std::max(0, opt.reservedEmpty), minActive, p.numBottles);
+        int active = preferredActive;
+        if (1ll * preferredActive * p.capacity == totalCells && preferredActive < p.numBottles) {
+            // 모든 병이 만땅이 되어버리는 경우, 여유 병을 섞어 높이 다양화
+            active = rng.irange(preferredActive + 1, p.numBottles);
+        }
+        else {
+            active = rng.irange(minActive, preferredActive);
+        }
+        active = std::clamp(active, minActive, p.numBottles);
+
         std::vector<int> order(p.numBottles);
         std::iota(order.begin(), order.end(), 0);
         for (size_t i = 0; i < order.size(); ++i) {
@@ -237,33 +249,30 @@ namespace ws {
             std::swap(order[i], order[j]);
         }
 
-        auto distributeGroup = [&](const std::vector<int>& group, long long budget) {
-            long long give = std::min<long long>({ budget, remainingCells, 1ll * (int)group.size() * p.capacity });
-            long long local = give;
-            for (size_t idx = 0; idx < group.size() && local > 0; ++idx) {
-                int bottle = group[idx];
-                int left = (int)(group.size() - idx - 1);
-                long long maxRemainingCapacity = 1ll * left * p.capacity;
-                int minTake = (int)std::max<long long>(0, local - maxRemainingCapacity);
-                int maxTake = (int)std::min<long long>(p.capacity, local);
-                if (local > left) {
-                    minTake = std::max(1, minTake);
-                }
-                if (minTake > maxTake) minTake = maxTake;
-                int take = (left == 0) ? maxTake : rng.irange(minTake, maxTake);
-                heights[bottle] = take;
-                local -= take;
+        int remaining = (int)totalCells;
+        for (int idx = 0; idx < active; ++idx) {
+            int bottle = order[idx];
+            int bottlesLeft = active - idx;
+            int maxRemainingCapacity = (bottlesLeft - 1) * p.capacity;
+            int minTake = std::max(0, remaining - maxRemainingCapacity);
+            int maxTake = std::min(p.capacity, remaining);
+            if (remaining >= bottlesLeft) {
+                minTake = std::max(1, minTake);
             }
-            long long used = give - local;
-            remainingCells -= used;
-        };
+            if (minTake > maxTake) minTake = maxTake;
+            int take = (idx == active - 1) ? remaining : rng.irange(minTake, maxTake);
+            heights[bottle] = take;
+            remaining -= take;
+        }
 
-        std::vector<int> primary(order.begin(), order.begin() + fillable);
-        distributeGroup(primary, remainingCells);
-
-        if (remainingCells > 0 && fillable < p.numBottles) {
-            std::vector<int> secondary(order.begin() + fillable, order.end());
-            distributeGroup(secondary, remainingCells);
+        // 혹시라도 남는 경우 대비 (이론상 남지 않아야 함)
+        if (remaining > 0) {
+            for (int idx = active; idx < p.numBottles && remaining > 0; ++idx) {
+                int bottle = order[idx];
+                int take = std::min(p.capacity - heights[bottle], remaining);
+                heights[bottle] += take;
+                remaining -= take;
+            }
         }
 
         return heights;
@@ -527,7 +536,7 @@ namespace ws {
     }
 
     State Generator::createRandomMixed() {
-        auto heights = computeDefaultHeights();
+        auto heights = opt.randomizeHeights ? computeRandomizedHeights() : computeDefaultHeights();
         return createRandomMixedWithHeights(heights);
     }
 
