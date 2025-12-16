@@ -6,6 +6,7 @@
 #include "backends/imgui_impl_sdlrenderer2.h"
 #include <algorithm> // for std::clamp
 #include <filesystem> // for font path existence check
+#include <cstdint>
 #include <string>
 
 namespace ws {
@@ -96,6 +97,11 @@ namespace ws {
         InputIntClamped("Cloth count", &clothCount, 0, p.numBottles);
         InputIntClamped("Vine count", &vineCount, 0, p.numBottles);
         InputIntClamped("Bush count", &bushCount, 0, p.numBottles);
+        ImGui::Checkbox("Randomize heights (auto template)", &opt.randomizeHeights);
+        uint64_t seedValue = opt.seed;
+        if (ImGui::InputScalar("Generator seed (random heights)", ImGuiDataType_U64, &seedValue)) {
+            opt.seed = seedValue;
+        }
         ImGui::Separator();
         ImGui::Text("Start State");
         ImGui::Checkbox("Start mixed (random deal)", &opt.startMixed);
@@ -225,7 +231,8 @@ namespace ws {
                             }
                         }
                         if (status.empty()) {
-                            status = "Auto template generation complete.";
+                            status = std::string("Auto template generation complete (heights ") +
+                                (optCopy.randomizeHeights ? "randomized" : "fixed") + ").";
                         }
                         setStatus(status);
                         isGenerating.store(false);
