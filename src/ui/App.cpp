@@ -102,6 +102,8 @@ namespace ws {
         InputIntClamped("Cloth count", &clothCount, 0, p.numBottles);
         InputIntClamped("Vine count", &vineCount, 0, p.numBottles);
         InputIntClamped("Bush count", &bushCount, 0, p.numBottles);
+        int filledSlots = std::max(0, p.numColors * p.capacity);
+        InputIntClamped("Question count", &questionCount, 0, filledSlots);
         ImGui::Checkbox("Randomize heights (auto template)", &opt.randomizeHeights);
         uint64_t seedValue = opt.seed;
         if (ImGui::InputScalar("Generator seed (random heights)", ImGuiDataType_U64, &seedValue)) {
@@ -184,11 +186,12 @@ namespace ws {
             int cloth = clothCount;
             int vine = vineCount;
             int bush = bushCount;
+            int questions = questionCount;
             int count = autoCount;
 
             Generator validator(pCopy, optCopy);
             std::string validationMsg;
-            if (!validator.buildRandomTemplate(cloth, vine, bush, &validationMsg)) {
+            if (!validator.buildRandomTemplate(cloth, vine, bush, questions, &validationMsg)) {
                 if (validationMsg.empty()) validationMsg = "Unable to build template with current settings.";
                 setStatus(validationMsg);
                 generationTotal = 0;
@@ -201,14 +204,14 @@ namespace ws {
                 generationCompleted.store(0);
                 isGenerating.store(true);
 
-                generationThread = std::thread([this, pCopy, optCopy, cloth, vine, bush, count]() mutable {
+                generationThread = std::thread([this, pCopy, optCopy, cloth, vine, bush, questions, count]() mutable {
                     Generator localGen(pCopy, optCopy);
                     std::vector<Generated> local;
                     std::string status;
                     local.reserve(count);
                     for (int i = 0; i < count; ++i) {
                         std::string reason;
-                        auto tplOpt = localGen.buildRandomTemplate(cloth, vine, bush, &reason);
+                        auto tplOpt = localGen.buildRandomTemplate(cloth, vine, bush, questions, &reason);
                         if (!tplOpt) {
                             status = reason.empty() ? "Failed to build template." : reason;
                             break;
