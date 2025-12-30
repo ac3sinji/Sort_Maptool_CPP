@@ -94,6 +94,11 @@ namespace ws {
         InputIntClamped("Auto template maps", &autoCount, 1, 50);
         ImGui::Separator();
         ImGui::Text("Auto template gimmicks");
+        ImGui::SameLine();
+        ImGui::TextDisabled("(?)");
+        if (ImGui::IsItemHovered()) {
+            ImGui::SetTooltip("Cloth/Vine/Bush 개수는 자동 템플릿 생성 시 병에 배치되는 기믹 수입니다.");
+        }
         InputIntClamped("Cloth count", &clothCount, 0, p.numBottles);
         InputIntClamped("Vine count", &vineCount, 0, p.numBottles);
         InputIntClamped("Bush count", &bushCount, 0, p.numBottles);
