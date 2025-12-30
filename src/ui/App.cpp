@@ -174,70 +174,64 @@ namespace ws {
         }
 
         if (ImGui::Button("Generate with Auto Template")) {
-            int totalRequested = clothCount + vineCount + bushCount;
-            if (totalRequested <= 0) {
-                setStatus("Set Cloth/Vine/Bush counts before auto generation.");
+            Params pCopy = p;
+            GenOptions optCopy = opt;
+            int cloth = clothCount;
+            int vine = vineCount;
+            int bush = bushCount;
+            int count = autoCount;
+
+            Generator validator(pCopy, optCopy);
+            std::string validationMsg;
+            if (!validator.buildRandomTemplate(cloth, vine, bush, &validationMsg)) {
+                if (validationMsg.empty()) validationMsg = "Unable to build template with current settings.";
+                setStatus(validationMsg);
+                generationTotal = 0;
+                generationCompleted.store(0);
             }
             else {
-                Params pCopy = p;
-                GenOptions optCopy = opt;
-                int cloth = clothCount;
-                int vine = vineCount;
-                int bush = bushCount;
-                int count = autoCount;
+                setStatus("");
+                if (generationThread.joinable()) generationThread.join();
+                generationTotal = count;
+                generationCompleted.store(0);
+                isGenerating.store(true);
 
-                Generator validator(pCopy, optCopy);
-                std::string validationMsg;
-                if (!validator.buildRandomTemplate(cloth, vine, bush, &validationMsg)) {
-                    if (validationMsg.empty()) validationMsg = "Unable to build template with current settings.";
-                    setStatus(validationMsg);
-                    generationTotal = 0;
-                    generationCompleted.store(0);
-                }
-                else {
-                    setStatus("");
-                    if (generationThread.joinable()) generationThread.join();
-                    generationTotal = count;
-                    generationCompleted.store(0);
-                    isGenerating.store(true);
-
-                    generationThread = std::thread([this, pCopy, optCopy, cloth, vine, bush, count]() mutable {
-                        Generator localGen(pCopy, optCopy);
-                        std::vector<Generated> local;
-                        std::string status;
-                        local.reserve(count);
-                        for (int i = 0; i < count; ++i) {
-                            std::string reason;
-                            auto tplOpt = localGen.buildRandomTemplate(cloth, vine, bush, &reason);
-                            if (!tplOpt) {
-                                status = reason.empty() ? "Failed to build template." : reason;
-                                break;
-                            }
-                            localGen.setBase(*tplOpt);
-                            auto g = localGen.makeOne(nullptr);
-                            if (g) {
-                                local.push_back(std::move(*g));
-                            }
-                            else {
-                                status = "Generation failed for a map.";
-                                break;
-                            }
-                            generationCompleted.fetch_add(1);
+                generationThread = std::thread([this, pCopy, optCopy, cloth, vine, bush, count]() mutable {
+                    Generator localGen(pCopy, optCopy);
+                    std::vector<Generated> local;
+                    std::string status;
+                    local.reserve(count);
+                    for (int i = 0; i < count; ++i) {
+                        std::string reason;
+                        auto tplOpt = localGen.buildRandomTemplate(cloth, vine, bush, &reason);
+                        if (!tplOpt) {
+                            status = reason.empty() ? "Failed to build template." : reason;
+                            break;
                         }
-                        {
-                            std::lock_guard<std::mutex> lock(pendingMutex);
-                            for (auto& item : local) {
-                                pendingGenerated.push_back(std::move(item));
-                            }
+                        localGen.setBase(*tplOpt);
+                        auto g = localGen.makeOne(nullptr);
+                        if (g) {
+                            local.push_back(std::move(*g));
                         }
-                        if (status.empty()) {
-                            status = std::string("Auto template generation complete (heights ") +
-                                (optCopy.randomizeHeights ? "randomized" : "fixed") + ").";
+                        else {
+                            status = "Generation failed for a map.";
+                            break;
                         }
-                        setStatus(status);
-                        isGenerating.store(false);
-                        });
-                }
+                        generationCompleted.fetch_add(1);
+                    }
+                    {
+                        std::lock_guard<std::mutex> lock(pendingMutex);
+                        for (auto& item : local) {
+                            pendingGenerated.push_back(std::move(item));
+                        }
+                    }
+                    if (status.empty()) {
+                        status = std::string("Auto template generation complete (heights ") +
+                            (optCopy.randomizeHeights ? "randomized" : "fixed") + ").";
+                    }
+                    setStatus(status);
+                    isGenerating.store(false);
+                    });
             }
         }
         if (currentlyGenerating) ImGui::EndDisabled();
