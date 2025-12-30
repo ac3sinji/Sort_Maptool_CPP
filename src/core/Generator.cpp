@@ -11,14 +11,14 @@ namespace ws {
 
     void Generator::setBase(const State& b) { base = b; }
 
-    std::optional<State> Generator::buildRandomTemplate(int clothCount, int vineCount, int bushCount, std::string* reason) {
+    std::optional<State> Generator::buildRandomTemplate(int clothCount, int vineCount, int bushCount, int questionCount, std::string* reason) {
         auto setReason = [&](const std::string& msg) {
             if (reason) *reason = msg;
         };
         if (reason) reason->clear();
 
-        if (clothCount < 0 || vineCount < 0 || bushCount < 0) {
-            setReason("Gimmick counts must be non-negative.");
+        if (clothCount < 0 || vineCount < 0 || bushCount < 0 || questionCount < 0) {
+            setReason("Counts must be non-negative.");
             return std::nullopt;
         }
 
@@ -107,6 +107,33 @@ namespace ws {
                 setReason("Unable to place all Bush gimmicks.");
                 return std::nullopt;
             }
+        }
+
+        const bool excludeTopSlots = true;
+        std::vector<std::pair<int, int>> hideCandidates;
+        hideCandidates.reserve((size_t)expected);
+        for (int bi = 0; bi < p.numBottles; ++bi) {
+            const auto& b = tpl.B[bi];
+            int limit = (int)b.slots.size();
+            if (excludeTopSlots && limit > 0) {
+                --limit;
+            }
+            for (int si = 0; si < limit; ++si) {
+                hideCandidates.emplace_back(bi, si);
+            }
+        }
+        if (questionCount > (int)hideCandidates.size()) {
+            std::string policyNote = excludeTopSlots ? " (top slots excluded)" : "";
+            setReason("Question count exceeds filled slots" + policyNote + ".");
+            return std::nullopt;
+        }
+        for (size_t i = 0; i < hideCandidates.size(); ++i) {
+            size_t j = (size_t)rng.irange((int)i, (int)hideCandidates.size() - 1);
+            std::swap(hideCandidates[i], hideCandidates[j]);
+        }
+        for (int i = 0; i < questionCount; ++i) {
+            auto [bi, si] = hideCandidates[i];
+            tpl.B[bi].slots[si].hidden = true;
         }
 
         tpl.refreshLocks();

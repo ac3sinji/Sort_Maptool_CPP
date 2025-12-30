@@ -34,7 +34,7 @@ namespace ws {
         std::optional<Generated> makeOne(const InitialDistribution* initial = nullptr);
 
         // Build a random template honoring params and requested gimmick counts.
-        std::optional<State> buildRandomTemplate(int clothCount, int vineCount, int bushCount, std::string* reason = nullptr);
+        std::optional<State> buildRandomTemplate(int clothCount, int vineCount, int bushCount, int questionCount, std::string* reason = nullptr);
 
         // Attach current base state (with bottle gimmicks already set from UI). If not set, defaults used.
         void setBase(const State& base);
