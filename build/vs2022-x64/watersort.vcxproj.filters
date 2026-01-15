@@ -1,0 +1,75 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="17.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClCompile Include="C:\Users\pivot\Desktop\박준철\Python\Sort_Maptool_CPP\src\main.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\pivot\Desktop\박준철\Python\Sort_Maptool_CPP\src\core\State.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\pivot\Desktop\박준철\Python\Sort_Maptool_CPP\src\core\Generator.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\pivot\Desktop\박준철\Python\Sort_Maptool_CPP\src\core\Solver.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\pivot\Desktop\박준철\Python\Sort_Maptool_CPP\src\io\Csv.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\pivot\Desktop\박준철\Python\Sort_Maptool_CPP\src\ui\App.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\pivot\Desktop\박준철\Python\Sort_Maptool_CPP\build\vs2022-x64\_deps\imgui-src\imgui.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\pivot\Desktop\박준철\Python\Sort_Maptool_CPP\build\vs2022-x64\_deps\imgui-src\imgui_demo.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\pivot\Desktop\박준철\Python\Sort_Maptool_CPP\build\vs2022-x64\_deps\imgui-src\imgui_draw.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\pivot\Desktop\박준철\Python\Sort_Maptool_CPP\build\vs2022-x64\_deps\imgui-src\imgui_tables.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\pivot\Desktop\박준철\Python\Sort_Maptool_CPP\build\vs2022-x64\_deps\imgui-src\imgui_widgets.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\pivot\Desktop\박준철\Python\Sort_Maptool_CPP\build\vs2022-x64\_deps\imgui-src\backends\imgui_impl_sdl2.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\pivot\Desktop\박준철\Python\Sort_Maptool_CPP\build\vs2022-x64\_deps\imgui-src\backends\imgui_impl_sdlrenderer2.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="C:\Users\pivot\Desktop\박준철\Python\Sort_Maptool_CPP\src\core\Types.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\pivot\Desktop\박준철\Python\Sort_Maptool_CPP\src\core\State.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\pivot\Desktop\박준철\Python\Sort_Maptool_CPP\src\core\Generator.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\pivot\Desktop\박준철\Python\Sort_Maptool_CPP\src\core\Solver.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\pivot\Desktop\박준철\Python\Sort_Maptool_CPP\src\io\Csv.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\pivot\Desktop\박준철\Python\Sort_Maptool_CPP\src\ui\App.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <CustomBuild Include="C:\Users\pivot\Desktop\박준철\Python\Sort_Maptool_CPP\CMakeLists.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="Header Files">
+      <UniqueIdentifier>{2C951B2D-BE0B-37B8-A331-D569B2CA949E}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{BFE7A198-5EDB-39FD-BC9C-CFC20E424229}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+</Project>

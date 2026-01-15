@@ -1,5 +1,4 @@
 # VS / CMake / build
-/build/
 /.vs/
 /out/
 CMakeCache.txt

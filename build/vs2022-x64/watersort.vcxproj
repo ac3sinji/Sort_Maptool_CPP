@@ -1,0 +1,451 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="17.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <PreferredToolArchitecture>x64</PreferredToolArchitecture>
+  </PropertyGroup>
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="MinSizeRel|x64">
+      <Configuration>MinSizeRel</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="RelWithDebInfo|x64">
+      <Configuration>RelWithDebInfo</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{8938B3D6-AD77-3FF0-859F-FF3D8D7D5D06}</ProjectGuid>
+    <Keyword>Win32Proj</Keyword>
+    <VcpkgEnabled>false</VcpkgEnabled>
+    <WindowsTargetPlatformVersion>10.0.22621.0</WindowsTargetPlatformVersion>
+    <Platform>x64</Platform>
+    <ProjectName>watersort</ProjectName>
+    <VCProjectUpgraderObjectName>NoUpgrade</VCProjectUpgraderObjectName>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <CharacterSet>MultiByte</CharacterSet>
+    <PlatformToolset>v143</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <CharacterSet>MultiByte</CharacterSet>
+    <PlatformToolset>v143</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <CharacterSet>MultiByte</CharacterSet>
+    <PlatformToolset>v143</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <CharacterSet>MultiByte</CharacterSet>
+    <PlatformToolset>v143</PlatformToolset>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets">
+    <Import Project="do_not_import_user.props" Condition="exists('do_not_import_user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup>
+    <_ProjectFileVersion>10.0.20506.1</_ProjectFileVersion>
+    <OutDir Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">C:\Users\pivot\Desktop\박준철\Python\Sort_Maptool_CPP\build\vs2022-x64\Debug\</OutDir>
+    <IntDir Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">watersort.dir\Debug\</IntDir>
+    <TargetName Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">watersort</TargetName>
+    <TargetExt Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">.exe</TargetExt>
+    <LinkIncremental Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</LinkIncremental>
+    <GenerateManifest Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</GenerateManifest>
+    <OutDir Condition="'$(Configuration)|$(Platform)'=='Release|x64'">C:\Users\pivot\Desktop\박준철\Python\Sort_Maptool_CPP\build\vs2022-x64\Release\</OutDir>
+    <IntDir Condition="'$(Configuration)|$(Platform)'=='Release|x64'">watersort.dir\Release\</IntDir>
+    <TargetName Condition="'$(Configuration)|$(Platform)'=='Release|x64'">watersort</TargetName>
+    <TargetExt Condition="'$(Configuration)|$(Platform)'=='Release|x64'">.exe</TargetExt>
+    <LinkIncremental Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</LinkIncremental>
+    <GenerateManifest Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</GenerateManifest>
+    <OutDir Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">C:\Users\pivot\Desktop\박준철\Python\Sort_Maptool_CPP\build\vs2022-x64\MinSizeRel\</OutDir>
+    <IntDir Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">watersort.dir\MinSizeRel\</IntDir>
+    <TargetName Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">watersort</TargetName>
+    <TargetExt Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">.exe</TargetExt>
+    <LinkIncremental Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">false</LinkIncremental>
+    <GenerateManifest Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">true</GenerateManifest>
+    <OutDir Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">C:\Users\pivot\Desktop\박준철\Python\Sort_Maptool_CPP\build\vs2022-x64\RelWithDebInfo\</OutDir>
+    <IntDir Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">watersort.dir\RelWithDebInfo\</IntDir>
+    <TargetName Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">watersort</TargetName>
+    <TargetExt Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">.exe</TargetExt>
+    <LinkIncremental Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">true</LinkIncremental>
+    <GenerateManifest Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">true</GenerateManifest>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <ClCompile>
+      <AdditionalIncludeDirectories>C:\Users\pivot\Desktop\박준철\Python\Sort_Maptool_CPP\build\vs2022-x64\_deps\imgui-src;C:\Users\pivot\Desktop\박준철\Python\Sort_Maptool_CPP\build\vs2022-x64\_deps\imgui-src\backends;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalOptions>%(AdditionalOptions) /external:I "C:/Users/pivot/Desktop/박준철/Python/Sort_Maptool_CPP/build/vs2022-x64/vcpkg_installed/x64-windows/include" /external:I "C:/Users/pivot/Desktop/박준철/Python/Sort_Maptool_CPP/build/vs2022-x64/vcpkg_installed/x64-windows/include/SDL2"</AdditionalOptions>
+      <AssemblerListingLocation>$(IntDir)</AssemblerListingLocation>
+      <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <ExceptionHandling>Sync</ExceptionHandling>
+      <ExternalWarningLevel>TurnOffAllWarnings</ExternalWarningLevel>
+      <InlineFunctionExpansion>Disabled</InlineFunctionExpansion>
+      <LanguageStandard>stdcpp20</LanguageStandard>
+      <MinimalRebuild></MinimalRebuild>
+      <Optimization>Disabled</Optimization>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
+      <SupportJustMyCode></SupportJustMyCode>
+      <UseFullPaths>false</UseFullPaths>
+      <PreprocessorDefinitions>%(PreprocessorDefinitions);WIN32;_WINDOWS;CMAKE_INTDIR="Debug"</PreprocessorDefinitions>
+      <ObjectFileName>$(IntDir)</ObjectFileName>
+      <ScanSourceForModuleDependencies>false</ScanSourceForModuleDependencies>
+    </ClCompile>
+    <ResourceCompile>
+      <PreprocessorDefinitions>%(PreprocessorDefinitions);WIN32;_DEBUG;_WINDOWS;CMAKE_INTDIR=\"Debug\"</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>C:\Users\pivot\Desktop\박준철\Python\Sort_Maptool_CPP\build\vs2022-x64\_deps\imgui-src;C:\Users\pivot\Desktop\박준철\Python\Sort_Maptool_CPP\build\vs2022-x64\_deps\imgui-src\backends;C:\Users\pivot\Desktop\박준철\Python\Sort_Maptool_CPP\build\vs2022-x64\vcpkg_installed\x64-windows\include;C:\Users\pivot\Desktop\박준철\Python\Sort_Maptool_CPP\build\vs2022-x64\vcpkg_installed\x64-windows\include\SDL2;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ResourceCompile>
+    <Midl>
+      <AdditionalIncludeDirectories>C:\Users\pivot\Desktop\박준철\Python\Sort_Maptool_CPP\build\vs2022-x64\_deps\imgui-src;C:\Users\pivot\Desktop\박준철\Python\Sort_Maptool_CPP\build\vs2022-x64\_deps\imgui-src\backends;C:\Users\pivot\Desktop\박준철\Python\Sort_Maptool_CPP\build\vs2022-x64\vcpkg_installed\x64-windows\include;C:\Users\pivot\Desktop\박준철\Python\Sort_Maptool_CPP\build\vs2022-x64\vcpkg_installed\x64-windows\include\SDL2;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <OutputDirectory>$(ProjectDir)/$(IntDir)</OutputDirectory>
+      <HeaderFileName>%(Filename).h</HeaderFileName>
+      <TypeLibraryName>%(Filename).tlb</TypeLibraryName>
+      <InterfaceIdentifierFileName>%(Filename)_i.c</InterfaceIdentifierFileName>
+      <ProxyFileName>%(Filename)_p.c</ProxyFileName>
+    </Midl>
+    <PostBuildEvent>
+      <Message>	</Message>
+      <Command>setlocal
+C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe -noprofile -executionpolicy Bypass -file C:/dev/vcpkg/scripts/buildsystems/msbuild/applocal.ps1 -targetBinary C:/Users/pivot/Desktop/박준철/Python/Sort_Maptool_CPP/build/vs2022-x64/Debug/watersort.exe -installedDir C:/Users/pivot/Desktop/박준철/Python/Sort_Maptool_CPP/build/vs2022-x64/vcpkg_installed/x64-windows/debug/bin -OutVariable out
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd
+setlocal
+"F:\Microsoft Visual Studio\2022\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin\cmake.exe" -E copy_if_different C:/Users/pivot/Desktop/박준철/Python/Sort_Maptool_CPP/build/vs2022-x64/vcpkg_installed/x64-windows/debug/bin/SDL2d.dll C:/Users/pivot/Desktop/박준철/Python/Sort_Maptool_CPP/build/vs2022-x64/Debug
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd</Command>
+    </PostBuildEvent>
+    <Link>
+      <AdditionalDependencies>vcpkg_installed\x64-windows\debug\lib\SDL2d.lib;vcpkg_installed\x64-windows\debug\lib\manual-link\SDL2maind.lib;shell32.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;comdlg32.lib;advapi32.lib</AdditionalDependencies>
+      <AdditionalLibraryDirectories>%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalOptions>%(AdditionalOptions) /machine:x64</AdditionalOptions>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <IgnoreSpecificDefaultLibraries>%(IgnoreSpecificDefaultLibraries)</IgnoreSpecificDefaultLibraries>
+      <ImportLibrary>C:/Users/pivot/Desktop/박준철/Python/Sort_Maptool_CPP/build/vs2022-x64/Debug/watersort.lib</ImportLibrary>
+      <ProgramDataBaseFile>C:/Users/pivot/Desktop/박준철/Python/Sort_Maptool_CPP/build/vs2022-x64/Debug/watersort.pdb</ProgramDataBaseFile>
+      <SubSystem>Windows</SubSystem>
+    </Link>
+    <ProjectReference>
+      <LinkLibraryDependencies>false</LinkLibraryDependencies>
+    </ProjectReference>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <ClCompile>
+      <AdditionalIncludeDirectories>C:\Users\pivot\Desktop\박준철\Python\Sort_Maptool_CPP\build\vs2022-x64\_deps\imgui-src;C:\Users\pivot\Desktop\박준철\Python\Sort_Maptool_CPP\build\vs2022-x64\_deps\imgui-src\backends;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalOptions>%(AdditionalOptions) /external:I "C:/Users/pivot/Desktop/박준철/Python/Sort_Maptool_CPP/build/vs2022-x64/vcpkg_installed/x64-windows/include" /external:I "C:/Users/pivot/Desktop/박준철/Python/Sort_Maptool_CPP/build/vs2022-x64/vcpkg_installed/x64-windows/include/SDL2"</AdditionalOptions>
+      <AssemblerListingLocation>$(IntDir)</AssemblerListingLocation>
+      <BasicRuntimeChecks>Default</BasicRuntimeChecks>
+      <ExceptionHandling>Sync</ExceptionHandling>
+      <ExternalWarningLevel>TurnOffAllWarnings</ExternalWarningLevel>
+      <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
+      <LanguageStandard>stdcpp20</LanguageStandard>
+      <MinimalRebuild></MinimalRebuild>
+      <Optimization>MaxSpeed</Optimization>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+      <SupportJustMyCode></SupportJustMyCode>
+      <UseFullPaths>false</UseFullPaths>
+      <PreprocessorDefinitions>%(PreprocessorDefinitions);WIN32;_WINDOWS;NDEBUG;CMAKE_INTDIR="Release"</PreprocessorDefinitions>
+      <ObjectFileName>$(IntDir)</ObjectFileName>
+      <DebugInformationFormat>
+      </DebugInformationFormat>
+      <ScanSourceForModuleDependencies>false</ScanSourceForModuleDependencies>
+    </ClCompile>
+    <ResourceCompile>
+      <PreprocessorDefinitions>%(PreprocessorDefinitions);WIN32;_WINDOWS;NDEBUG;CMAKE_INTDIR=\"Release\"</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>C:\Users\pivot\Desktop\박준철\Python\Sort_Maptool_CPP\build\vs2022-x64\_deps\imgui-src;C:\Users\pivot\Desktop\박준철\Python\Sort_Maptool_CPP\build\vs2022-x64\_deps\imgui-src\backends;C:\Users\pivot\Desktop\박준철\Python\Sort_Maptool_CPP\build\vs2022-x64\vcpkg_installed\x64-windows\include;C:\Users\pivot\Desktop\박준철\Python\Sort_Maptool_CPP\build\vs2022-x64\vcpkg_installed\x64-windows\include\SDL2;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ResourceCompile>
+    <Midl>
+      <AdditionalIncludeDirectories>C:\Users\pivot\Desktop\박준철\Python\Sort_Maptool_CPP\build\vs2022-x64\_deps\imgui-src;C:\Users\pivot\Desktop\박준철\Python\Sort_Maptool_CPP\build\vs2022-x64\_deps\imgui-src\backends;C:\Users\pivot\Desktop\박준철\Python\Sort_Maptool_CPP\build\vs2022-x64\vcpkg_installed\x64-windows\include;C:\Users\pivot\Desktop\박준철\Python\Sort_Maptool_CPP\build\vs2022-x64\vcpkg_installed\x64-windows\include\SDL2;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <OutputDirectory>$(ProjectDir)/$(IntDir)</OutputDirectory>
+      <HeaderFileName>%(Filename).h</HeaderFileName>
+      <TypeLibraryName>%(Filename).tlb</TypeLibraryName>
+      <InterfaceIdentifierFileName>%(Filename)_i.c</InterfaceIdentifierFileName>
+      <ProxyFileName>%(Filename)_p.c</ProxyFileName>
+    </Midl>
+    <PostBuildEvent>
+      <Message>	</Message>
+      <Command>setlocal
+C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe -noprofile -executionpolicy Bypass -file C:/dev/vcpkg/scripts/buildsystems/msbuild/applocal.ps1 -targetBinary C:/Users/pivot/Desktop/박준철/Python/Sort_Maptool_CPP/build/vs2022-x64/Release/watersort.exe -installedDir C:/Users/pivot/Desktop/박준철/Python/Sort_Maptool_CPP/build/vs2022-x64/vcpkg_installed/x64-windows/bin -OutVariable out
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd
+setlocal
+"F:\Microsoft Visual Studio\2022\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin\cmake.exe" -E copy_if_different C:/Users/pivot/Desktop/박준철/Python/Sort_Maptool_CPP/build/vs2022-x64/vcpkg_installed/x64-windows/bin/SDL2.dll C:/Users/pivot/Desktop/박준철/Python/Sort_Maptool_CPP/build/vs2022-x64/Release
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd</Command>
+    </PostBuildEvent>
+    <Link>
+      <AdditionalDependencies>vcpkg_installed\x64-windows\lib\SDL2.lib;vcpkg_installed\x64-windows\lib\manual-link\SDL2main.lib;shell32.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;comdlg32.lib;advapi32.lib</AdditionalDependencies>
+      <AdditionalLibraryDirectories>%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalOptions>%(AdditionalOptions) /machine:x64</AdditionalOptions>
+      <GenerateDebugInformation>false</GenerateDebugInformation>
+      <IgnoreSpecificDefaultLibraries>%(IgnoreSpecificDefaultLibraries)</IgnoreSpecificDefaultLibraries>
+      <ImportLibrary>C:/Users/pivot/Desktop/박준철/Python/Sort_Maptool_CPP/build/vs2022-x64/Release/watersort.lib</ImportLibrary>
+      <ProgramDataBaseFile>C:/Users/pivot/Desktop/박준철/Python/Sort_Maptool_CPP/build/vs2022-x64/Release/watersort.pdb</ProgramDataBaseFile>
+      <SubSystem>Windows</SubSystem>
+    </Link>
+    <ProjectReference>
+      <LinkLibraryDependencies>false</LinkLibraryDependencies>
+    </ProjectReference>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">
+    <ClCompile>
+      <AdditionalIncludeDirectories>C:\Users\pivot\Desktop\박준철\Python\Sort_Maptool_CPP\build\vs2022-x64\_deps\imgui-src;C:\Users\pivot\Desktop\박준철\Python\Sort_Maptool_CPP\build\vs2022-x64\_deps\imgui-src\backends;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalOptions>%(AdditionalOptions) /external:I "C:/Users/pivot/Desktop/박준철/Python/Sort_Maptool_CPP/build/vs2022-x64/vcpkg_installed/x64-windows/include" /external:I "C:/Users/pivot/Desktop/박준철/Python/Sort_Maptool_CPP/build/vs2022-x64/vcpkg_installed/x64-windows/include/SDL2"</AdditionalOptions>
+      <AssemblerListingLocation>$(IntDir)</AssemblerListingLocation>
+      <BasicRuntimeChecks>Default</BasicRuntimeChecks>
+      <ExceptionHandling>Sync</ExceptionHandling>
+      <ExternalWarningLevel>TurnOffAllWarnings</ExternalWarningLevel>
+      <InlineFunctionExpansion>OnlyExplicitInline</InlineFunctionExpansion>
+      <LanguageStandard>stdcpp20</LanguageStandard>
+      <MinimalRebuild></MinimalRebuild>
+      <Optimization>MinSpace</Optimization>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+      <SupportJustMyCode></SupportJustMyCode>
+      <UseFullPaths>false</UseFullPaths>
+      <PreprocessorDefinitions>%(PreprocessorDefinitions);WIN32;_WINDOWS;NDEBUG;CMAKE_INTDIR="MinSizeRel"</PreprocessorDefinitions>
+      <ObjectFileName>$(IntDir)</ObjectFileName>
+      <DebugInformationFormat>
+      </DebugInformationFormat>
+      <ScanSourceForModuleDependencies>false</ScanSourceForModuleDependencies>
+    </ClCompile>
+    <ResourceCompile>
+      <PreprocessorDefinitions>%(PreprocessorDefinitions);WIN32;_WINDOWS;NDEBUG;CMAKE_INTDIR=\"MinSizeRel\"</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>C:\Users\pivot\Desktop\박준철\Python\Sort_Maptool_CPP\build\vs2022-x64\_deps\imgui-src;C:\Users\pivot\Desktop\박준철\Python\Sort_Maptool_CPP\build\vs2022-x64\_deps\imgui-src\backends;C:\Users\pivot\Desktop\박준철\Python\Sort_Maptool_CPP\build\vs2022-x64\vcpkg_installed\x64-windows\include;C:\Users\pivot\Desktop\박준철\Python\Sort_Maptool_CPP\build\vs2022-x64\vcpkg_installed\x64-windows\include\SDL2;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ResourceCompile>
+    <Midl>
+      <AdditionalIncludeDirectories>C:\Users\pivot\Desktop\박준철\Python\Sort_Maptool_CPP\build\vs2022-x64\_deps\imgui-src;C:\Users\pivot\Desktop\박준철\Python\Sort_Maptool_CPP\build\vs2022-x64\_deps\imgui-src\backends;C:\Users\pivot\Desktop\박준철\Python\Sort_Maptool_CPP\build\vs2022-x64\vcpkg_installed\x64-windows\include;C:\Users\pivot\Desktop\박준철\Python\Sort_Maptool_CPP\build\vs2022-x64\vcpkg_installed\x64-windows\include\SDL2;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <OutputDirectory>$(ProjectDir)/$(IntDir)</OutputDirectory>
+      <HeaderFileName>%(Filename).h</HeaderFileName>
+      <TypeLibraryName>%(Filename).tlb</TypeLibraryName>
+      <InterfaceIdentifierFileName>%(Filename)_i.c</InterfaceIdentifierFileName>
+      <ProxyFileName>%(Filename)_p.c</ProxyFileName>
+    </Midl>
+    <PostBuildEvent>
+      <Message>	</Message>
+      <Command>setlocal
+C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe -noprofile -executionpolicy Bypass -file C:/dev/vcpkg/scripts/buildsystems/msbuild/applocal.ps1 -targetBinary C:/Users/pivot/Desktop/박준철/Python/Sort_Maptool_CPP/build/vs2022-x64/MinSizeRel/watersort.exe -installedDir C:/Users/pivot/Desktop/박준철/Python/Sort_Maptool_CPP/build/vs2022-x64/vcpkg_installed/x64-windows/bin -OutVariable out
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd
+setlocal
+"F:\Microsoft Visual Studio\2022\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin\cmake.exe" -E copy_if_different C:/Users/pivot/Desktop/박준철/Python/Sort_Maptool_CPP/build/vs2022-x64/vcpkg_installed/x64-windows/bin/SDL2.dll C:/Users/pivot/Desktop/박준철/Python/Sort_Maptool_CPP/build/vs2022-x64/MinSizeRel
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd</Command>
+    </PostBuildEvent>
+    <Link>
+      <AdditionalDependencies>vcpkg_installed\x64-windows\lib\SDL2.lib;vcpkg_installed\x64-windows\lib\manual-link\SDL2main.lib;shell32.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;comdlg32.lib;advapi32.lib</AdditionalDependencies>
+      <AdditionalLibraryDirectories>%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalOptions>%(AdditionalOptions) /machine:x64</AdditionalOptions>
+      <GenerateDebugInformation>false</GenerateDebugInformation>
+      <IgnoreSpecificDefaultLibraries>%(IgnoreSpecificDefaultLibraries)</IgnoreSpecificDefaultLibraries>
+      <ImportLibrary>C:/Users/pivot/Desktop/박준철/Python/Sort_Maptool_CPP/build/vs2022-x64/MinSizeRel/watersort.lib</ImportLibrary>
+      <ProgramDataBaseFile>C:/Users/pivot/Desktop/박준철/Python/Sort_Maptool_CPP/build/vs2022-x64/MinSizeRel/watersort.pdb</ProgramDataBaseFile>
+      <SubSystem>Windows</SubSystem>
+    </Link>
+    <ProjectReference>
+      <LinkLibraryDependencies>false</LinkLibraryDependencies>
+    </ProjectReference>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">
+    <ClCompile>
+      <AdditionalIncludeDirectories>C:\Users\pivot\Desktop\박준철\Python\Sort_Maptool_CPP\build\vs2022-x64\_deps\imgui-src;C:\Users\pivot\Desktop\박준철\Python\Sort_Maptool_CPP\build\vs2022-x64\_deps\imgui-src\backends;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalOptions>%(AdditionalOptions) /external:I "C:/Users/pivot/Desktop/박준철/Python/Sort_Maptool_CPP/build/vs2022-x64/vcpkg_installed/x64-windows/include" /external:I "C:/Users/pivot/Desktop/박준철/Python/Sort_Maptool_CPP/build/vs2022-x64/vcpkg_installed/x64-windows/include/SDL2"</AdditionalOptions>
+      <AssemblerListingLocation>$(IntDir)</AssemblerListingLocation>
+      <BasicRuntimeChecks>Default</BasicRuntimeChecks>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <ExceptionHandling>Sync</ExceptionHandling>
+      <ExternalWarningLevel>TurnOffAllWarnings</ExternalWarningLevel>
+      <InlineFunctionExpansion>OnlyExplicitInline</InlineFunctionExpansion>
+      <LanguageStandard>stdcpp20</LanguageStandard>
+      <MinimalRebuild></MinimalRebuild>
+      <Optimization>MaxSpeed</Optimization>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+      <SupportJustMyCode></SupportJustMyCode>
+      <UseFullPaths>false</UseFullPaths>
+      <PreprocessorDefinitions>%(PreprocessorDefinitions);WIN32;_WINDOWS;NDEBUG;CMAKE_INTDIR="RelWithDebInfo"</PreprocessorDefinitions>
+      <ObjectFileName>$(IntDir)</ObjectFileName>
+      <ScanSourceForModuleDependencies>false</ScanSourceForModuleDependencies>
+    </ClCompile>
+    <ResourceCompile>
+      <PreprocessorDefinitions>%(PreprocessorDefinitions);WIN32;_WINDOWS;NDEBUG;CMAKE_INTDIR=\"RelWithDebInfo\"</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>C:\Users\pivot\Desktop\박준철\Python\Sort_Maptool_CPP\build\vs2022-x64\_deps\imgui-src;C:\Users\pivot\Desktop\박준철\Python\Sort_Maptool_CPP\build\vs2022-x64\_deps\imgui-src\backends;C:\Users\pivot\Desktop\박준철\Python\Sort_Maptool_CPP\build\vs2022-x64\vcpkg_installed\x64-windows\include;C:\Users\pivot\Desktop\박준철\Python\Sort_Maptool_CPP\build\vs2022-x64\vcpkg_installed\x64-windows\include\SDL2;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ResourceCompile>
+    <Midl>
+      <AdditionalIncludeDirectories>C:\Users\pivot\Desktop\박준철\Python\Sort_Maptool_CPP\build\vs2022-x64\_deps\imgui-src;C:\Users\pivot\Desktop\박준철\Python\Sort_Maptool_CPP\build\vs2022-x64\_deps\imgui-src\backends;C:\Users\pivot\Desktop\박준철\Python\Sort_Maptool_CPP\build\vs2022-x64\vcpkg_installed\x64-windows\include;C:\Users\pivot\Desktop\박준철\Python\Sort_Maptool_CPP\build\vs2022-x64\vcpkg_installed\x64-windows\include\SDL2;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <OutputDirectory>$(ProjectDir)/$(IntDir)</OutputDirectory>
+      <HeaderFileName>%(Filename).h</HeaderFileName>
+      <TypeLibraryName>%(Filename).tlb</TypeLibraryName>
+      <InterfaceIdentifierFileName>%(Filename)_i.c</InterfaceIdentifierFileName>
+      <ProxyFileName>%(Filename)_p.c</ProxyFileName>
+    </Midl>
+    <PostBuildEvent>
+      <Message>	</Message>
+      <Command>setlocal
+C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe -noprofile -executionpolicy Bypass -file C:/dev/vcpkg/scripts/buildsystems/msbuild/applocal.ps1 -targetBinary C:/Users/pivot/Desktop/박준철/Python/Sort_Maptool_CPP/build/vs2022-x64/RelWithDebInfo/watersort.exe -installedDir C:/Users/pivot/Desktop/박준철/Python/Sort_Maptool_CPP/build/vs2022-x64/vcpkg_installed/x64-windows/bin -OutVariable out
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd
+setlocal
+"F:\Microsoft Visual Studio\2022\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin\cmake.exe" -E copy_if_different C:/Users/pivot/Desktop/박준철/Python/Sort_Maptool_CPP/build/vs2022-x64/vcpkg_installed/x64-windows/bin/SDL2.dll C:/Users/pivot/Desktop/박준철/Python/Sort_Maptool_CPP/build/vs2022-x64/RelWithDebInfo
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd</Command>
+    </PostBuildEvent>
+    <Link>
+      <AdditionalDependencies>vcpkg_installed\x64-windows\lib\SDL2.lib;vcpkg_installed\x64-windows\lib\manual-link\SDL2main.lib;shell32.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;comdlg32.lib;advapi32.lib</AdditionalDependencies>
+      <AdditionalLibraryDirectories>%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalOptions>%(AdditionalOptions) /machine:x64</AdditionalOptions>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <IgnoreSpecificDefaultLibraries>%(IgnoreSpecificDefaultLibraries)</IgnoreSpecificDefaultLibraries>
+      <ImportLibrary>C:/Users/pivot/Desktop/박준철/Python/Sort_Maptool_CPP/build/vs2022-x64/RelWithDebInfo/watersort.lib</ImportLibrary>
+      <ProgramDataBaseFile>C:/Users/pivot/Desktop/박준철/Python/Sort_Maptool_CPP/build/vs2022-x64/RelWithDebInfo/watersort.pdb</ProgramDataBaseFile>
+      <SubSystem>Windows</SubSystem>
+    </Link>
+    <ProjectReference>
+      <LinkLibraryDependencies>false</LinkLibraryDependencies>
+    </ProjectReference>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <CustomBuild Include="C:\Users\pivot\Desktop\박준철\Python\Sort_Maptool_CPP\CMakeLists.txt">
+      <UseUtf8Encoding>Always</UseUtf8Encoding>
+      <Message Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Building Custom Rule C:/Users/pivot/Desktop/박준철/Python/Sort_Maptool_CPP/CMakeLists.txt</Message>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">setlocal
+"F:\Microsoft Visual Studio\2022\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin\cmake.exe" -SC:/Users/pivot/Desktop/박준철/Python/Sort_Maptool_CPP -BC:/Users/pivot/Desktop/박준철/Python/Sort_Maptool_CPP/build/vs2022-x64 --check-stamp-file C:/Users/pivot/Desktop/박준철/Python/Sort_Maptool_CPP/build/vs2022-x64/CMakeFiles/generate.stamp
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd</Command>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">C:\Users\pivot\Desktop\박준철\Python\Sort_Maptool_CPP\build\vs2022-x64\CMakeFiles\3.30.5-msvc23\CMakeCXXCompiler.cmake;C:\Users\pivot\Desktop\박준철\Python\Sort_Maptool_CPP\build\vs2022-x64\CMakeFiles\3.30.5-msvc23\CMakeRCCompiler.cmake;C:\Users\pivot\Desktop\박준철\Python\Sort_Maptool_CPP\build\vs2022-x64\CMakeFiles\3.30.5-msvc23\CMakeSystem.cmake;C:\Users\pivot\Desktop\박준철\Python\Sort_Maptool_CPP\build\vs2022-x64\vcpkg_installed\x64-windows\share\sdl2\SDL2Config.cmake;C:\Users\pivot\Desktop\박준철\Python\Sort_Maptool_CPP\build\vs2022-x64\vcpkg_installed\x64-windows\share\sdl2\SDL2ConfigVersion.cmake;C:\Users\pivot\Desktop\박준철\Python\Sort_Maptool_CPP\build\vs2022-x64\vcpkg_installed\x64-windows\share\sdl2\SDL2Targets-debug.cmake;C:\Users\pivot\Desktop\박준철\Python\Sort_Maptool_CPP\build\vs2022-x64\vcpkg_installed\x64-windows\share\sdl2\SDL2Targets-release.cmake;C:\Users\pivot\Desktop\박준철\Python\Sort_Maptool_CPP\build\vs2022-x64\vcpkg_installed\x64-windows\share\sdl2\SDL2Targets.cmake;C:\Users\pivot\Desktop\박준철\Python\Sort_Maptool_CPP\build\vs2022-x64\vcpkg_installed\x64-windows\share\sdl2\SDL2mainTargets-debug.cmake;C:\Users\pivot\Desktop\박준철\Python\Sort_Maptool_CPP\build\vs2022-x64\vcpkg_installed\x64-windows\share\sdl2\SDL2mainTargets-release.cmake;C:\Users\pivot\Desktop\박준철\Python\Sort_Maptool_CPP\build\vs2022-x64\vcpkg_installed\x64-windows\share\sdl2\SDL2mainTargets.cmake;C:\Users\pivot\Desktop\박준철\Python\Sort_Maptool_CPP\build\vs2022-x64\vcpkg_installed\x64-windows\share\sdl2\sdlfind.cmake;C:\Users\pivot\Desktop\박준철\Python\Sort_Maptool_CPP\vcpkg.json;C:\dev\vcpkg\scripts\buildsystems\vcpkg.cmake;F:\Microsoft Visual Studio\2022\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-3.30\Modules\CMakeCXXInformation.cmake;F:\Microsoft Visual Studio\2022\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-3.30\Modules\CMakeCommonLanguageInclude.cmake;F:\Microsoft Visual Studio\2022\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-3.30\Modules\CMakeDependentOption.cmake;F:\Microsoft Visual Studio\2022\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-3.30\Modules\CMakeGenericSystem.cmake;F:\Microsoft Visual Studio\2022\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-3.30\Modules\CMakeInitializeConfigs.cmake;F:\Microsoft Visual Studio\2022\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-3.30\Modules\CMakeLanguageInformation.cmake;F:\Microsoft Visual Studio\2022\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-3.30\Modules\CMakeRCInformation.cmake;F:\Microsoft Visual Studio\2022\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-3.30\Modules\CMakeSystemSpecificInformation.cmake;F:\Microsoft Visual Studio\2022\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-3.30\Modules\CMakeSystemSpecificInitialize.cmake;F:\Microsoft Visual Studio\2022\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-3.30\Modules\Compiler\CMakeCommonCompilerMacros.cmake;F:\Microsoft Visual Studio\2022\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-3.30\Modules\Compiler\MSVC-CXX.cmake;F:\Microsoft Visual Studio\2022\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-3.30\Modules\Compiler\MSVC.cmake;F:\Microsoft Visual Studio\2022\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-3.30\Modules\ExternalProject\shared_internal_commands.cmake;F:\Microsoft Visual Studio\2022\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-3.30\Modules\FeatureSummary.cmake;F:\Microsoft Visual Studio\2022\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-3.30\Modules\FetchContent.cmake;F:\Microsoft Visual Studio\2022\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-3.30\Modules\FetchContent\CMakeLists.cmake.in;F:\Microsoft Visual Studio\2022\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-3.30\Modules\FindGit.cmake;F:\Microsoft Visual Studio\2022\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-3.30\Modules\FindPackageHandleStandardArgs.cmake;F:\Microsoft Visual Studio\2022\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-3.30\Modules\FindPackageMessage.cmake;F:\Microsoft Visual Studio\2022\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-3.30\Modules\Platform\Windows-Initialize.cmake;F:\Microsoft Visual Studio\2022\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-3.30\Modules\Platform\Windows-MSVC-CXX.cmake;F:\Microsoft Visual Studio\2022\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-3.30\Modules\Platform\Windows-MSVC.cmake;F:\Microsoft Visual Studio\2022\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-3.30\Modules\Platform\Windows.cmake;F:\Microsoft Visual Studio\2022\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-3.30\Modules\Platform\WindowsPaths.cmake;%(AdditionalInputs)</AdditionalInputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">C:\Users\pivot\Desktop\박준철\Python\Sort_Maptool_CPP\build\vs2022-x64\CMakeFiles\generate.stamp</Outputs>
+      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</LinkObjects>
+      <Message Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Building Custom Rule C:/Users/pivot/Desktop/박준철/Python/Sort_Maptool_CPP/CMakeLists.txt</Message>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Release|x64'">setlocal
+"F:\Microsoft Visual Studio\2022\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin\cmake.exe" -SC:/Users/pivot/Desktop/박준철/Python/Sort_Maptool_CPP -BC:/Users/pivot/Desktop/박준철/Python/Sort_Maptool_CPP/build/vs2022-x64 --check-stamp-file C:/Users/pivot/Desktop/박준철/Python/Sort_Maptool_CPP/build/vs2022-x64/CMakeFiles/generate.stamp
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd</Command>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">C:\Users\pivot\Desktop\박준철\Python\Sort_Maptool_CPP\build\vs2022-x64\CMakeFiles\3.30.5-msvc23\CMakeCXXCompiler.cmake;C:\Users\pivot\Desktop\박준철\Python\Sort_Maptool_CPP\build\vs2022-x64\CMakeFiles\3.30.5-msvc23\CMakeRCCompiler.cmake;C:\Users\pivot\Desktop\박준철\Python\Sort_Maptool_CPP\build\vs2022-x64\CMakeFiles\3.30.5-msvc23\CMakeSystem.cmake;C:\Users\pivot\Desktop\박준철\Python\Sort_Maptool_CPP\build\vs2022-x64\vcpkg_installed\x64-windows\share\sdl2\SDL2Config.cmake;C:\Users\pivot\Desktop\박준철\Python\Sort_Maptool_CPP\build\vs2022-x64\vcpkg_installed\x64-windows\share\sdl2\SDL2ConfigVersion.cmake;C:\Users\pivot\Desktop\박준철\Python\Sort_Maptool_CPP\build\vs2022-x64\vcpkg_installed\x64-windows\share\sdl2\SDL2Targets-debug.cmake;C:\Users\pivot\Desktop\박준철\Python\Sort_Maptool_CPP\build\vs2022-x64\vcpkg_installed\x64-windows\share\sdl2\SDL2Targets-release.cmake;C:\Users\pivot\Desktop\박준철\Python\Sort_Maptool_CPP\build\vs2022-x64\vcpkg_installed\x64-windows\share\sdl2\SDL2Targets.cmake;C:\Users\pivot\Desktop\박준철\Python\Sort_Maptool_CPP\build\vs2022-x64\vcpkg_installed\x64-windows\share\sdl2\SDL2mainTargets-debug.cmake;C:\Users\pivot\Desktop\박준철\Python\Sort_Maptool_CPP\build\vs2022-x64\vcpkg_installed\x64-windows\share\sdl2\SDL2mainTargets-release.cmake;C:\Users\pivot\Desktop\박준철\Python\Sort_Maptool_CPP\build\vs2022-x64\vcpkg_installed\x64-windows\share\sdl2\SDL2mainTargets.cmake;C:\Users\pivot\Desktop\박준철\Python\Sort_Maptool_CPP\build\vs2022-x64\vcpkg_installed\x64-windows\share\sdl2\sdlfind.cmake;C:\Users\pivot\Desktop\박준철\Python\Sort_Maptool_CPP\vcpkg.json;C:\dev\vcpkg\scripts\buildsystems\vcpkg.cmake;F:\Microsoft Visual Studio\2022\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-3.30\Modules\CMakeCXXInformation.cmake;F:\Microsoft Visual Studio\2022\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-3.30\Modules\CMakeCommonLanguageInclude.cmake;F:\Microsoft Visual Studio\2022\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-3.30\Modules\CMakeDependentOption.cmake;F:\Microsoft Visual Studio\2022\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-3.30\Modules\CMakeGenericSystem.cmake;F:\Microsoft Visual Studio\2022\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-3.30\Modules\CMakeInitializeConfigs.cmake;F:\Microsoft Visual Studio\2022\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-3.30\Modules\CMakeLanguageInformation.cmake;F:\Microsoft Visual Studio\2022\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-3.30\Modules\CMakeRCInformation.cmake;F:\Microsoft Visual Studio\2022\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-3.30\Modules\CMakeSystemSpecificInformation.cmake;F:\Microsoft Visual Studio\2022\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-3.30\Modules\CMakeSystemSpecificInitialize.cmake;F:\Microsoft Visual Studio\2022\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-3.30\Modules\Compiler\CMakeCommonCompilerMacros.cmake;F:\Microsoft Visual Studio\2022\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-3.30\Modules\Compiler\MSVC-CXX.cmake;F:\Microsoft Visual Studio\2022\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-3.30\Modules\Compiler\MSVC.cmake;F:\Microsoft Visual Studio\2022\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-3.30\Modules\ExternalProject\shared_internal_commands.cmake;F:\Microsoft Visual Studio\2022\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-3.30\Modules\FeatureSummary.cmake;F:\Microsoft Visual Studio\2022\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-3.30\Modules\FetchContent.cmake;F:\Microsoft Visual Studio\2022\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-3.30\Modules\FetchContent\CMakeLists.cmake.in;F:\Microsoft Visual Studio\2022\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-3.30\Modules\FindGit.cmake;F:\Microsoft Visual Studio\2022\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-3.30\Modules\FindPackageHandleStandardArgs.cmake;F:\Microsoft Visual Studio\2022\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-3.30\Modules\FindPackageMessage.cmake;F:\Microsoft Visual Studio\2022\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-3.30\Modules\Platform\Windows-Initialize.cmake;F:\Microsoft Visual Studio\2022\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-3.30\Modules\Platform\Windows-MSVC-CXX.cmake;F:\Microsoft Visual Studio\2022\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-3.30\Modules\Platform\Windows-MSVC.cmake;F:\Microsoft Visual Studio\2022\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-3.30\Modules\Platform\Windows.cmake;F:\Microsoft Visual Studio\2022\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-3.30\Modules\Platform\WindowsPaths.cmake;%(AdditionalInputs)</AdditionalInputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">C:\Users\pivot\Desktop\박준철\Python\Sort_Maptool_CPP\build\vs2022-x64\CMakeFiles\generate.stamp</Outputs>
+      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</LinkObjects>
+      <Message Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">Building Custom Rule C:/Users/pivot/Desktop/박준철/Python/Sort_Maptool_CPP/CMakeLists.txt</Message>
+      <Command Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">setlocal
+"F:\Microsoft Visual Studio\2022\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin\cmake.exe" -SC:/Users/pivot/Desktop/박준철/Python/Sort_Maptool_CPP -BC:/Users/pivot/Desktop/박준철/Python/Sort_Maptool_CPP/build/vs2022-x64 --check-stamp-file C:/Users/pivot/Desktop/박준철/Python/Sort_Maptool_CPP/build/vs2022-x64/CMakeFiles/generate.stamp
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd</Command>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">C:\Users\pivot\Desktop\박준철\Python\Sort_Maptool_CPP\build\vs2022-x64\CMakeFiles\3.30.5-msvc23\CMakeCXXCompiler.cmake;C:\Users\pivot\Desktop\박준철\Python\Sort_Maptool_CPP\build\vs2022-x64\CMakeFiles\3.30.5-msvc23\CMakeRCCompiler.cmake;C:\Users\pivot\Desktop\박준철\Python\Sort_Maptool_CPP\build\vs2022-x64\CMakeFiles\3.30.5-msvc23\CMakeSystem.cmake;C:\Users\pivot\Desktop\박준철\Python\Sort_Maptool_CPP\build\vs2022-x64\vcpkg_installed\x64-windows\share\sdl2\SDL2Config.cmake;C:\Users\pivot\Desktop\박준철\Python\Sort_Maptool_CPP\build\vs2022-x64\vcpkg_installed\x64-windows\share\sdl2\SDL2ConfigVersion.cmake;C:\Users\pivot\Desktop\박준철\Python\Sort_Maptool_CPP\build\vs2022-x64\vcpkg_installed\x64-windows\share\sdl2\SDL2Targets-debug.cmake;C:\Users\pivot\Desktop\박준철\Python\Sort_Maptool_CPP\build\vs2022-x64\vcpkg_installed\x64-windows\share\sdl2\SDL2Targets-release.cmake;C:\Users\pivot\Desktop\박준철\Python\Sort_Maptool_CPP\build\vs2022-x64\vcpkg_installed\x64-windows\share\sdl2\SDL2Targets.cmake;C:\Users\pivot\Desktop\박준철\Python\Sort_Maptool_CPP\build\vs2022-x64\vcpkg_installed\x64-windows\share\sdl2\SDL2mainTargets-debug.cmake;C:\Users\pivot\Desktop\박준철\Python\Sort_Maptool_CPP\build\vs2022-x64\vcpkg_installed\x64-windows\share\sdl2\SDL2mainTargets-release.cmake;C:\Users\pivot\Desktop\박준철\Python\Sort_Maptool_CPP\build\vs2022-x64\vcpkg_installed\x64-windows\share\sdl2\SDL2mainTargets.cmake;C:\Users\pivot\Desktop\박준철\Python\Sort_Maptool_CPP\build\vs2022-x64\vcpkg_installed\x64-windows\share\sdl2\sdlfind.cmake;C:\Users\pivot\Desktop\박준철\Python\Sort_Maptool_CPP\vcpkg.json;C:\dev\vcpkg\scripts\buildsystems\vcpkg.cmake;F:\Microsoft Visual Studio\2022\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-3.30\Modules\CMakeCXXInformation.cmake;F:\Microsoft Visual Studio\2022\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-3.30\Modules\CMakeCommonLanguageInclude.cmake;F:\Microsoft Visual Studio\2022\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-3.30\Modules\CMakeDependentOption.cmake;F:\Microsoft Visual Studio\2022\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-3.30\Modules\CMakeGenericSystem.cmake;F:\Microsoft Visual Studio\2022\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-3.30\Modules\CMakeInitializeConfigs.cmake;F:\Microsoft Visual Studio\2022\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-3.30\Modules\CMakeLanguageInformation.cmake;F:\Microsoft Visual Studio\2022\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-3.30\Modules\CMakeRCInformation.cmake;F:\Microsoft Visual Studio\2022\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-3.30\Modules\CMakeSystemSpecificInformation.cmake;F:\Microsoft Visual Studio\2022\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-3.30\Modules\CMakeSystemSpecificInitialize.cmake;F:\Microsoft Visual Studio\2022\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-3.30\Modules\Compiler\CMakeCommonCompilerMacros.cmake;F:\Microsoft Visual Studio\2022\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-3.30\Modules\Compiler\MSVC-CXX.cmake;F:\Microsoft Visual Studio\2022\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-3.30\Modules\Compiler\MSVC.cmake;F:\Microsoft Visual Studio\2022\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-3.30\Modules\ExternalProject\shared_internal_commands.cmake;F:\Microsoft Visual Studio\2022\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-3.30\Modules\FeatureSummary.cmake;F:\Microsoft Visual Studio\2022\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-3.30\Modules\FetchContent.cmake;F:\Microsoft Visual Studio\2022\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-3.30\Modules\FetchContent\CMakeLists.cmake.in;F:\Microsoft Visual Studio\2022\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-3.30\Modules\FindGit.cmake;F:\Microsoft Visual Studio\2022\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-3.30\Modules\FindPackageHandleStandardArgs.cmake;F:\Microsoft Visual Studio\2022\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-3.30\Modules\FindPackageMessage.cmake;F:\Microsoft Visual Studio\2022\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-3.30\Modules\Platform\Windows-Initialize.cmake;F:\Microsoft Visual Studio\2022\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-3.30\Modules\Platform\Windows-MSVC-CXX.cmake;F:\Microsoft Visual Studio\2022\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-3.30\Modules\Platform\Windows-MSVC.cmake;F:\Microsoft Visual Studio\2022\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-3.30\Modules\Platform\Windows.cmake;F:\Microsoft Visual Studio\2022\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-3.30\Modules\Platform\WindowsPaths.cmake;%(AdditionalInputs)</AdditionalInputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">C:\Users\pivot\Desktop\박준철\Python\Sort_Maptool_CPP\build\vs2022-x64\CMakeFiles\generate.stamp</Outputs>
+      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">false</LinkObjects>
+      <Message Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">Building Custom Rule C:/Users/pivot/Desktop/박준철/Python/Sort_Maptool_CPP/CMakeLists.txt</Message>
+      <Command Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">setlocal
+"F:\Microsoft Visual Studio\2022\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin\cmake.exe" -SC:/Users/pivot/Desktop/박준철/Python/Sort_Maptool_CPP -BC:/Users/pivot/Desktop/박준철/Python/Sort_Maptool_CPP/build/vs2022-x64 --check-stamp-file C:/Users/pivot/Desktop/박준철/Python/Sort_Maptool_CPP/build/vs2022-x64/CMakeFiles/generate.stamp
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd</Command>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">C:\Users\pivot\Desktop\박준철\Python\Sort_Maptool_CPP\build\vs2022-x64\CMakeFiles\3.30.5-msvc23\CMakeCXXCompiler.cmake;C:\Users\pivot\Desktop\박준철\Python\Sort_Maptool_CPP\build\vs2022-x64\CMakeFiles\3.30.5-msvc23\CMakeRCCompiler.cmake;C:\Users\pivot\Desktop\박준철\Python\Sort_Maptool_CPP\build\vs2022-x64\CMakeFiles\3.30.5-msvc23\CMakeSystem.cmake;C:\Users\pivot\Desktop\박준철\Python\Sort_Maptool_CPP\build\vs2022-x64\vcpkg_installed\x64-windows\share\sdl2\SDL2Config.cmake;C:\Users\pivot\Desktop\박준철\Python\Sort_Maptool_CPP\build\vs2022-x64\vcpkg_installed\x64-windows\share\sdl2\SDL2ConfigVersion.cmake;C:\Users\pivot\Desktop\박준철\Python\Sort_Maptool_CPP\build\vs2022-x64\vcpkg_installed\x64-windows\share\sdl2\SDL2Targets-debug.cmake;C:\Users\pivot\Desktop\박준철\Python\Sort_Maptool_CPP\build\vs2022-x64\vcpkg_installed\x64-windows\share\sdl2\SDL2Targets-release.cmake;C:\Users\pivot\Desktop\박준철\Python\Sort_Maptool_CPP\build\vs2022-x64\vcpkg_installed\x64-windows\share\sdl2\SDL2Targets.cmake;C:\Users\pivot\Desktop\박준철\Python\Sort_Maptool_CPP\build\vs2022-x64\vcpkg_installed\x64-windows\share\sdl2\SDL2mainTargets-debug.cmake;C:\Users\pivot\Desktop\박준철\Python\Sort_Maptool_CPP\build\vs2022-x64\vcpkg_installed\x64-windows\share\sdl2\SDL2mainTargets-release.cmake;C:\Users\pivot\Desktop\박준철\Python\Sort_Maptool_CPP\build\vs2022-x64\vcpkg_installed\x64-windows\share\sdl2\SDL2mainTargets.cmake;C:\Users\pivot\Desktop\박준철\Python\Sort_Maptool_CPP\build\vs2022-x64\vcpkg_installed\x64-windows\share\sdl2\sdlfind.cmake;C:\Users\pivot\Desktop\박준철\Python\Sort_Maptool_CPP\vcpkg.json;C:\dev\vcpkg\scripts\buildsystems\vcpkg.cmake;F:\Microsoft Visual Studio\2022\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-3.30\Modules\CMakeCXXInformation.cmake;F:\Microsoft Visual Studio\2022\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-3.30\Modules\CMakeCommonLanguageInclude.cmake;F:\Microsoft Visual Studio\2022\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-3.30\Modules\CMakeDependentOption.cmake;F:\Microsoft Visual Studio\2022\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-3.30\Modules\CMakeGenericSystem.cmake;F:\Microsoft Visual Studio\2022\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-3.30\Modules\CMakeInitializeConfigs.cmake;F:\Microsoft Visual Studio\2022\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-3.30\Modules\CMakeLanguageInformation.cmake;F:\Microsoft Visual Studio\2022\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-3.30\Modules\CMakeRCInformation.cmake;F:\Microsoft Visual Studio\2022\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-3.30\Modules\CMakeSystemSpecificInformation.cmake;F:\Microsoft Visual Studio\2022\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-3.30\Modules\CMakeSystemSpecificInitialize.cmake;F:\Microsoft Visual Studio\2022\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-3.30\Modules\Compiler\CMakeCommonCompilerMacros.cmake;F:\Microsoft Visual Studio\2022\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-3.30\Modules\Compiler\MSVC-CXX.cmake;F:\Microsoft Visual Studio\2022\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-3.30\Modules\Compiler\MSVC.cmake;F:\Microsoft Visual Studio\2022\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-3.30\Modules\ExternalProject\shared_internal_commands.cmake;F:\Microsoft Visual Studio\2022\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-3.30\Modules\FeatureSummary.cmake;F:\Microsoft Visual Studio\2022\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-3.30\Modules\FetchContent.cmake;F:\Microsoft Visual Studio\2022\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-3.30\Modules\FetchContent\CMakeLists.cmake.in;F:\Microsoft Visual Studio\2022\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-3.30\Modules\FindGit.cmake;F:\Microsoft Visual Studio\2022\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-3.30\Modules\FindPackageHandleStandardArgs.cmake;F:\Microsoft Visual Studio\2022\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-3.30\Modules\FindPackageMessage.cmake;F:\Microsoft Visual Studio\2022\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-3.30\Modules\Platform\Windows-Initialize.cmake;F:\Microsoft Visual Studio\2022\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-3.30\Modules\Platform\Windows-MSVC-CXX.cmake;F:\Microsoft Visual Studio\2022\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-3.30\Modules\Platform\Windows-MSVC.cmake;F:\Microsoft Visual Studio\2022\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-3.30\Modules\Platform\Windows.cmake;F:\Microsoft Visual Studio\2022\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-3.30\Modules\Platform\WindowsPaths.cmake;%(AdditionalInputs)</AdditionalInputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">C:\Users\pivot\Desktop\박준철\Python\Sort_Maptool_CPP\build\vs2022-x64\CMakeFiles\generate.stamp</Outputs>
+      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">false</LinkObjects>
+    </CustomBuild>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="C:\Users\pivot\Desktop\박준철\Python\Sort_Maptool_CPP\src\main.cpp" />
+    <ClInclude Include="C:\Users\pivot\Desktop\박준철\Python\Sort_Maptool_CPP\src\core\Types.hpp" />
+    <ClInclude Include="C:\Users\pivot\Desktop\박준철\Python\Sort_Maptool_CPP\src\core\State.hpp" />
+    <ClCompile Include="C:\Users\pivot\Desktop\박준철\Python\Sort_Maptool_CPP\src\core\State.cpp" />
+    <ClInclude Include="C:\Users\pivot\Desktop\박준철\Python\Sort_Maptool_CPP\src\core\Generator.hpp" />
+    <ClCompile Include="C:\Users\pivot\Desktop\박준철\Python\Sort_Maptool_CPP\src\core\Generator.cpp" />
+    <ClInclude Include="C:\Users\pivot\Desktop\박준철\Python\Sort_Maptool_CPP\src\core\Solver.hpp" />
+    <ClCompile Include="C:\Users\pivot\Desktop\박준철\Python\Sort_Maptool_CPP\src\core\Solver.cpp" />
+    <ClInclude Include="C:\Users\pivot\Desktop\박준철\Python\Sort_Maptool_CPP\src\io\Csv.hpp" />
+    <ClCompile Include="C:\Users\pivot\Desktop\박준철\Python\Sort_Maptool_CPP\src\io\Csv.cpp" />
+    <ClInclude Include="C:\Users\pivot\Desktop\박준철\Python\Sort_Maptool_CPP\src\ui\App.hpp" />
+    <ClCompile Include="C:\Users\pivot\Desktop\박준철\Python\Sort_Maptool_CPP\src\ui\App.cpp" />
+    <ClCompile Include="C:\Users\pivot\Desktop\박준철\Python\Sort_Maptool_CPP\build\vs2022-x64\_deps\imgui-src\imgui.cpp" />
+    <ClCompile Include="C:\Users\pivot\Desktop\박준철\Python\Sort_Maptool_CPP\build\vs2022-x64\_deps\imgui-src\imgui_demo.cpp" />
+    <ClCompile Include="C:\Users\pivot\Desktop\박준철\Python\Sort_Maptool_CPP\build\vs2022-x64\_deps\imgui-src\imgui_draw.cpp" />
+    <ClCompile Include="C:\Users\pivot\Desktop\박준철\Python\Sort_Maptool_CPP\build\vs2022-x64\_deps\imgui-src\imgui_tables.cpp" />
+    <ClCompile Include="C:\Users\pivot\Desktop\박준철\Python\Sort_Maptool_CPP\build\vs2022-x64\_deps\imgui-src\imgui_widgets.cpp" />
+    <ClCompile Include="C:\Users\pivot\Desktop\박준철\Python\Sort_Maptool_CPP\build\vs2022-x64\_deps\imgui-src\backends\imgui_impl_sdl2.cpp" />
+    <ClCompile Include="C:\Users\pivot\Desktop\박준철\Python\Sort_Maptool_CPP\build\vs2022-x64\_deps\imgui-src\backends\imgui_impl_sdlrenderer2.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="C:\Users\pivot\Desktop\박준철\Python\Sort_Maptool_CPP\build\vs2022-x64\ZERO_CHECK.vcxproj">
+      <Project>{5055FC7B-7701-34A3-A2EE-DB9B5D5BCC95}</Project>
+      <Name>ZERO_CHECK</Name>
+      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </ProjectReference>
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>

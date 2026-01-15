@@ -1,0 +1,13 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="17.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <CustomBuild Include="C:\Users\pivot\Desktop\박준철\Python\Sort_Maptool_CPP\build\vs2022-x64\CMakeFiles\e9c151648bb8b26562bfeaa2766009ee\generate.stamp.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="CMake Rules">
+      <UniqueIdentifier>{B4D05317-A3B0-3D22-85A2-1CA4482FFB8B}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+</Project>

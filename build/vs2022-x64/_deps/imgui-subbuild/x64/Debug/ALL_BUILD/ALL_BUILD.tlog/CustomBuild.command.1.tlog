@@ -1,0 +1,10 @@
+^C:\USERS\PIVOT\DESKTOP\박준철\PYTHON\SORT_MAPTOOL_CPP\BUILD\VS2022-X64\_DEPS\IMGUI-SUBBUILD\CMAKELISTS.TXT
+setlocal
+"F:\Microsoft Visual Studio\2022\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin\cmake.exe" -SC:/Users/pivot/Desktop/박준철/Python/Sort_Maptool_CPP/build/vs2022-x64/_deps/imgui-subbuild -BC:/Users/pivot/Desktop/박준철/Python/Sort_Maptool_CPP/build/vs2022-x64/_deps/imgui-subbuild --check-stamp-file C:/Users/pivot/Desktop/박준철/Python/Sort_Maptool_CPP/build/vs2022-x64/_deps/imgui-subbuild/CMakeFiles/generate.stamp
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal & call :cmErrorLevel %errorlevel% & goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd
