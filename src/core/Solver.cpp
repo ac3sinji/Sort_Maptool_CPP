@@ -101,6 +101,9 @@ namespace ws {
         auto t0 = clock::now();
 
         SolveResult result;
+        std::vector<Move> path;
+        std::vector<Move> solutionMoves;
+        bool foundPath = false;
 
         if (start.isSolved()) {
             result.solved = true;
@@ -124,7 +127,13 @@ namespace ws {
 
             int f = g + heuristic(s);
             if (f > boundVal) return f;
-            if (s.isSolved()) return -g; // found, return negative depth
+            if (s.isSolved()) {
+                if (!foundPath) {
+                    solutionMoves = path;
+                    foundPath = true;
+                }
+                return -g; // found, return negative depth
+            }
 
             size_t h = s.hash();
             if (visited.count(h)) return std::numeric_limits<int>::max();
@@ -145,7 +154,9 @@ namespace ws {
 
             for (const auto& c : cand) {
                 State s2 = s; s2.apply(c.m);
+                path.push_back(c.m);
                 int t = dfs(s2, g + 1, boundVal);
+                if (!path.empty()) path.pop_back();
                 if (t < 0) return t; // solved at depth g'
                 if (t < minNext) minNext = t;
                 if (searchTimedOut) break;
@@ -176,6 +187,7 @@ namespace ws {
         }
 
         result.minMoves = solvedDepth;
+        result.solutionMoves = std::move(solutionMoves);
         result.distinctSolutions = 1;
 
         if (!timeOk()) {
@@ -204,7 +216,7 @@ namespace ws {
         return result;
     }
 
-    double Solver::estimateDifficulty(const State& s, const SolveResult& solveStats) const {
+    double Solver::estimateDifficulty(const State& s, SolveResult& solveStats) const {
         const int minMoves = solveStats.minMoves;
         // Compose from heuristic features with softer contribution from gimmicks.
         const int colors = s.p.numColors;
@@ -212,11 +224,11 @@ namespace ws {
 
         // Base move pressure – emphasise longer optimal routes but with diminishing returns.
         const double moveDepth = std::max(0, minMoves);
-        const double moveComponent = std::min(45.0, std::pow(moveDepth + 1.0, 1.1) * 1.35);
+        const double moveComponent = std::min(50.0, std::pow(moveDepth + 1.0, 1.2) * 1.45);
 
         // Structural complexity derived from the IDA* heuristic (fragmentation, blocking, etc.).
         const int h0 = heuristic(s);
-        const double heuristicComponent = std::min(25.0, std::pow(static_cast<double>(std::max(0, h0)), 1.2) * 1.6);
+        const double heuristicComponent = std::min(22.0, std::pow(static_cast<double>(std::max(0, h0)), 1.15) * 1.3);
 
         // Count fragmentation and hidden information.
         double fragmentation = 0.0;
@@ -236,7 +248,7 @@ namespace ws {
             }
             if (groups > 1) fragmentation += static_cast<double>(groups - 1);
         }
-        const double fragmentationComponent = std::min(15.0, fragmentation * 1.25);
+        const double fragmentationComponent = std::min(12.0, fragmentation * 1.0);
         const int hiddenFree = 2;
         const int hiddenCap = 7;
         const double hiddenMaxScore = 6.0;
@@ -269,11 +281,14 @@ namespace ws {
         }
         const double normalizedGimmickPressure = bottles > 0 ? gimmickWeight / bottles : 0.0;
         double gimmickComponent = (1.0 - std::exp(-normalizedGimmickPressure * 2.8)) * 18.0;
-        gimmickComponent -= std::min(5.0, static_cast<double>(emptyBottles)); // free space mitigates gimmicks
+        gimmickComponent -= std::min(4.0, static_cast<double>(emptyBottles)); // free space mitigates gimmicks
         if (gimmickComponent < 0.0) gimmickComponent = 0.0;
 
         // Additional subtle scaling by colour variety beyond the default palette.
         const double colorComponent = std::min(7.0, std::max(0, colors - 5) * 1.2);
+
+        // Extra relief for puzzles with more empty bottles (player flexibility).
+        const double emptyBottleComponent = -std::min(10.0, static_cast<double>(emptyBottles) * 2.0);
 
         // Reward/punish based on how many optimal answers the puzzle offers.
         double solutionComponent = 0.0;
@@ -300,10 +315,19 @@ namespace ws {
             }
         }
 
-        double score = moveComponent + heuristicComponent + fragmentationComponent + hiddenComponent + gimmickComponent + colorComponent + solutionComponent;
+        double score = moveComponent + heuristicComponent + fragmentationComponent + hiddenComponent + emptyBottleComponent + gimmickComponent + colorComponent + solutionComponent;
 
         if (score < 0.0) score = 0.0;
         if (score > 100.0) score = 100.0;
+        solveStats.difficulty.moveComponent = moveComponent;
+        solveStats.difficulty.heuristicComponent = heuristicComponent;
+        solveStats.difficulty.fragmentationComponent = fragmentationComponent;
+        solveStats.difficulty.hiddenComponent = hiddenComponent;
+        solveStats.difficulty.emptyBottleComponent = emptyBottleComponent;
+        solveStats.difficulty.gimmickComponent = gimmickComponent;
+        solveStats.difficulty.colorComponent = colorComponent;
+        solveStats.difficulty.solutionComponent = solutionComponent;
+        solveStats.difficulty.totalScore = score;
         return score;
     }
 
