@@ -329,6 +329,46 @@ namespace ws {
         const auto& baseState = g.state;
 
         ImGui::Text("Mix=%d  MinMoves=%d  Diff=%.1f (%s)", g.mixCount, g.minMoves, g.diffScore, g.diffLabel.c_str());
+        ImGui::Text("Difficulty breakdown:");
+        ImGui::Text("  Move: %.1f  Heuristic: %.1f  Fragment: %.1f", g.difficulty.moveComponent, g.difficulty.heuristicComponent, g.difficulty.fragmentationComponent);
+        ImGui::Text("  Hidden: %.1f  Gimmick: %.1f  Color: %.1f", g.difficulty.hiddenComponent, g.difficulty.gimmickComponent, g.difficulty.colorComponent);
+        ImGui::Text("  Solution: %.1f  Total: %.1f", g.difficulty.solutionComponent, g.difficulty.totalScore);
+
+        const auto& moves = g.solutionMoves;
+        int maxStep = (int)moves.size();
+        playbackStep = std::clamp(playbackStep, 0, maxStep);
+        if (moves.empty()) {
+            ImGui::TextDisabled("No solution path recorded.");
+        }
+        else {
+            ImGui::Separator();
+            ImGui::Text("Solution step: %d / %d", playbackStep, maxStep);
+            bool canPrev = playbackStep > 0;
+            bool canNext = playbackStep < maxStep;
+            if (!canPrev) ImGui::BeginDisabled();
+            if (ImGui::Button("Prev")) { --playbackStep; }
+            if (!canPrev) ImGui::EndDisabled();
+            ImGui::SameLine();
+            if (!canNext) ImGui::BeginDisabled();
+            if (ImGui::Button("Next")) { ++playbackStep; }
+            if (!canNext) ImGui::EndDisabled();
+            ImGui::SameLine();
+            if (ImGui::Button("Reset")) { playbackStep = 0; }
+            int stepInput = playbackStep;
+            if (InputIntClamped("Step", &stepInput, 0, maxStep)) {
+                playbackStep = stepInput;
+            }
+            if (playbackStep > 0 && playbackStep <= maxStep) {
+                const auto& lastMove = moves[playbackStep - 1];
+                ImGui::Text("Move %d: %d -> %d (amount %d)", playbackStep, lastMove.from + 1, lastMove.to + 1, lastMove.amount);
+            }
+        }
+
+        State viewState = baseState;
+        for (int i = 0; i < playbackStep && i < maxStep; ++i) {
+            viewState.apply(moves[i]);
+        }
+        const auto& s = viewState;
 
         const auto& moves = g.solutionMoves;
         int maxStep = (int)moves.size();

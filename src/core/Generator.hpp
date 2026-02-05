@@ -1,6 +1,6 @@
 // ========================= src/core/Generator.hpp =========================
 #pragma once
-#include "State.hpp"
+#include "Solver.hpp"
 #include <optional>
 #include <string>
 
@@ -27,6 +27,7 @@ namespace ws {
         double diffScore{ 0.0 };
         std::string diffLabel;
         std::vector<Move> solutionMoves;
+        SolveResult::DifficultyBreakdown difficulty;
     };
 
     // If initialDistribution is provided, it overrides the default goal distribution.

@@ -216,7 +216,7 @@ namespace ws {
         return result;
     }
 
-    double Solver::estimateDifficulty(const State& s, const SolveResult& solveStats) const {
+    double Solver::estimateDifficulty(const State& s, SolveResult& solveStats) const {
         const int minMoves = solveStats.minMoves;
         // Compose from heuristic features with softer contribution from gimmicks.
         const int colors = s.p.numColors;
@@ -316,6 +316,14 @@ namespace ws {
 
         if (score < 0.0) score = 0.0;
         if (score > 100.0) score = 100.0;
+        solveStats.difficulty.moveComponent = moveComponent;
+        solveStats.difficulty.heuristicComponent = heuristicComponent;
+        solveStats.difficulty.fragmentationComponent = fragmentationComponent;
+        solveStats.difficulty.hiddenComponent = hiddenComponent;
+        solveStats.difficulty.gimmickComponent = gimmickComponent;
+        solveStats.difficulty.colorComponent = colorComponent;
+        solveStats.difficulty.solutionComponent = solutionComponent;
+        solveStats.difficulty.totalScore = score;
         return score;
     }
 

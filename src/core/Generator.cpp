@@ -238,6 +238,7 @@ namespace ws {
                 g.diffScore = solver.estimateDifficulty(s, res);
                 g.diffLabel = labelForScore(g.diffScore);
                 g.solutionMoves = std::move(res.solutionMoves);
+                g.difficulty = res.difficulty;
                 return g;
             }
             // 실패 시 다음 시도
