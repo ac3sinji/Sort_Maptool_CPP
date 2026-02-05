@@ -12,6 +12,7 @@ namespace ws {
         int distinctSolutions{ 0 };      // number of distinct optimal solutions discovered (capped)
         bool solutionCountExhaustive{ false }; // true if the optimal-solution count search finished exhaustively
         bool solutionCountLimited{ false };    // true if counting stopped after hitting the sampling cap
+        std::vector<Move> solutionMoves; // one optimal solution path (may be empty if unsolved)
     };
 
     class Solver {
