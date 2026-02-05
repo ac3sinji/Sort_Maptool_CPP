@@ -109,6 +109,21 @@ namespace ws {
             }
         }
 
+        for (auto& bottle : tpl.B) {
+            if (bottle.gimmick.kind != StackGimmickKind::Vine) continue;
+            if (bottle.slots.size() <= 1) continue;
+            Color seed = bottle.slots.front().c;
+            bool mono = true;
+            for (const auto& s : bottle.slots) {
+                if (s.c != seed) { mono = false; break; }
+            }
+            if (!mono) {
+                for (auto& s : bottle.slots) {
+                    s.c = seed;
+                }
+            }
+        }
+
         const bool excludeTopSlots = true;
         std::vector<std::pair<int, int>> hideCandidates;
         hideCandidates.reserve((size_t)expected);
