@@ -224,7 +224,7 @@ namespace ws {
 
         // Base move pressure – emphasise longer optimal routes but with diminishing returns.
         const double moveDepth = std::max(0, minMoves);
-        const double moveComponent = std::min(42.0, std::pow(moveDepth + 1.0, 1.08) * 1.2);
+        const double moveComponent = std::min(50.0, std::pow(moveDepth + 1.0, 1.2) * 1.45);
 
         // Structural complexity derived from the IDA* heuristic (fragmentation, blocking, etc.).
         const int h0 = heuristic(s);
