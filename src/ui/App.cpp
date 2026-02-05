@@ -331,8 +331,8 @@ namespace ws {
         ImGui::Text("Mix=%d  MinMoves=%d  Diff=%.1f (%s)", g.mixCount, g.minMoves, g.diffScore, g.diffLabel.c_str());
         ImGui::Text("Difficulty breakdown:");
         ImGui::Text("  Move: %.1f  Heuristic: %.1f  Fragment: %.1f", g.difficulty.moveComponent, g.difficulty.heuristicComponent, g.difficulty.fragmentationComponent);
-        ImGui::Text("  Hidden: %.1f  Gimmick: %.1f  Color: %.1f", g.difficulty.hiddenComponent, g.difficulty.gimmickComponent, g.difficulty.colorComponent);
-        ImGui::Text("  Solution: %.1f  Total: %.1f", g.difficulty.solutionComponent, g.difficulty.totalScore);
+        ImGui::Text("  Hidden: %.1f  Empty: %.1f  Gimmick: %.1f", g.difficulty.hiddenComponent, g.difficulty.emptyBottleComponent, g.difficulty.gimmickComponent);
+        ImGui::Text("  Color: %.1f  Solution: %.1f  Total: %.1f", g.difficulty.colorComponent, g.difficulty.solutionComponent, g.difficulty.totalScore);
 
         const auto& solutionMoves = g.solutionMoves;
         const int maxStep = static_cast<int>(solutionMoves.size());
