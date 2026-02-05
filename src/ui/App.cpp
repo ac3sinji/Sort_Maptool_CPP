@@ -71,6 +71,7 @@ namespace ws {
         bool interacted = ImGui::InputInt(label, value, step, stepFast);
         if (*value < minValue) *value = minValue;
         if (*value > maxValue) *value = maxValue;
+
         return interacted || *value != before;
     }
 
