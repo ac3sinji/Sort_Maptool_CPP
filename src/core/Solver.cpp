@@ -101,6 +101,9 @@ namespace ws {
         auto t0 = clock::now();
 
         SolveResult result;
+        std::vector<Move> path;
+        std::vector<Move> solutionMoves;
+        bool foundPath = false;
 
         if (start.isSolved()) {
             result.solved = true;
@@ -124,7 +127,13 @@ namespace ws {
 
             int f = g + heuristic(s);
             if (f > boundVal) return f;
-            if (s.isSolved()) return -g; // found, return negative depth
+            if (s.isSolved()) {
+                if (!foundPath) {
+                    solutionMoves = path;
+                    foundPath = true;
+                }
+                return -g; // found, return negative depth
+            }
 
             size_t h = s.hash();
             if (visited.count(h)) return std::numeric_limits<int>::max();
@@ -145,7 +154,9 @@ namespace ws {
 
             for (const auto& c : cand) {
                 State s2 = s; s2.apply(c.m);
+                path.push_back(c.m);
                 int t = dfs(s2, g + 1, boundVal);
+                if (!path.empty()) path.pop_back();
                 if (t < 0) return t; // solved at depth g'
                 if (t < minNext) minNext = t;
                 if (searchTimedOut) break;
@@ -176,6 +187,7 @@ namespace ws {
         }
 
         result.minMoves = solvedDepth;
+        result.solutionMoves = std::move(solutionMoves);
         result.distinctSolutions = 1;
 
         if (!timeOk()) {

@@ -237,6 +237,7 @@ namespace ws {
                 Generated g; g.state = s; g.mixCount = mix; g.minMoves = res.minMoves;
                 g.diffScore = solver.estimateDifficulty(s, res);
                 g.diffLabel = labelForScore(g.diffScore);
+                g.solutionMoves = std::move(res.solutionMoves);
                 return g;
             }
             // 실패 시 다음 시도
