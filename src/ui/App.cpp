@@ -37,6 +37,7 @@ namespace ws {
         if (idx >= 0 && idx < (int)generated.size()) {
             currentIndex = idx;
             viewIndexInput = idx + 1;
+            playbackStep = 0;
         }
     }
 
@@ -264,6 +265,7 @@ namespace ws {
             generated.clear();
             currentIndex = -1;
             viewIndexInput = 1;
+            playbackStep = 0;
         }
 
         ImGui::Separator();
@@ -324,9 +326,49 @@ namespace ws {
         ImGui::Begin("Viewer");
         if (currentIndex < 0 || currentIndex >= (int)generated.size()) { ImGui::Text("No map selected"); ImGui::End(); return; }
         const auto& g = generated[currentIndex];
-        const auto& s = g.state;
+        const auto& baseState = g.state;
 
         ImGui::Text("Mix=%d  MinMoves=%d  Diff=%.1f (%s)", g.mixCount, g.minMoves, g.diffScore, g.diffLabel.c_str());
+        ImGui::Text("Difficulty breakdown:");
+        ImGui::Text("  Move: %.1f  Heuristic: %.1f  Fragment: %.1f", g.difficulty.moveComponent, g.difficulty.heuristicComponent, g.difficulty.fragmentationComponent);
+        ImGui::Text("  Hidden: %.1f  Gimmick: %.1f  Color: %.1f", g.difficulty.hiddenComponent, g.difficulty.gimmickComponent, g.difficulty.colorComponent);
+        ImGui::Text("  Solution: %.1f  Total: %.1f", g.difficulty.solutionComponent, g.difficulty.totalScore);
+
+        const auto& solutionMoves = g.solutionMoves;
+        const int maxStep = static_cast<int>(solutionMoves.size());
+        playbackStep = std::clamp(playbackStep, 0, maxStep);
+        if (solutionMoves.empty()) {
+            ImGui::TextDisabled("No solution path recorded.");
+        }
+        else {
+            ImGui::Separator();
+            ImGui::Text("Solution step: %d / %d", playbackStep, maxStep);
+            bool canPrev = playbackStep > 0;
+            bool canNext = playbackStep < maxStep;
+            if (!canPrev) ImGui::BeginDisabled();
+            if (ImGui::Button("Prev")) { --playbackStep; }
+            if (!canPrev) ImGui::EndDisabled();
+            ImGui::SameLine();
+            if (!canNext) ImGui::BeginDisabled();
+            if (ImGui::Button("Next")) { ++playbackStep; }
+            if (!canNext) ImGui::EndDisabled();
+            ImGui::SameLine();
+            if (ImGui::Button("Reset")) { playbackStep = 0; }
+            int stepInput = playbackStep;
+            if (InputIntClamped("Step", &stepInput, 0, maxStep)) {
+                playbackStep = stepInput;
+            }
+            if (playbackStep > 0 && playbackStep <= maxStep) {
+                const auto& lastMove = solutionMoves[playbackStep - 1];
+                ImGui::Text("Move %d: %d -> %d (amount %d)", playbackStep, lastMove.from + 1, lastMove.to + 1, lastMove.amount);
+            }
+        }
+
+        State viewState = baseState;
+        for (int i = 0; i < playbackStep && i < maxStep; ++i) {
+            viewState.apply(solutionMoves[i]);
+        }
+        const auto& s = viewState;
 
         // draw bottles
         float cell = 18.0f; // cell height
