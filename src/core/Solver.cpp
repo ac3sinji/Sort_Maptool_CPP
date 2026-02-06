@@ -239,41 +239,69 @@ namespace ws {
         int hiddenBottles = 0;
         int emptyBottles = 0;
         int monoFullBottles = 0;
+        double effectiveHiddenGroups = 0.0;
         for (const auto& b : s.B) {
             if (b.isEmpty()) { ++emptyBottles; continue; }
             if (b.isMonoFull()) { ++monoFullBottles; }
             Color prev = 0;
             int groups = 0;
             bool hasHidden = false;
+            int bottleHiddenCount = 0;
+            bool hasKnownColor = false;
+            bool monoKnownColor = true;
+            Color firstKnownColor = 0;
             for (const auto& sl : b.slots) {
-                if (sl.hidden) { ++hiddenSlots; hasHidden = true; }
+                if (sl.hidden) {
+                    ++hiddenSlots;
+                    hasHidden = true;
+                    ++bottleHiddenCount;
+                }
                 if (sl.c == 0) continue;
+                if (!hasKnownColor) {
+                    hasKnownColor = true;
+                    firstKnownColor = sl.c;
+                }
+                else if (sl.c != firstKnownColor) {
+                    monoKnownColor = false;
+                }
                 if (sl.c != prev) {
                     ++groups;
                     prev = sl.c;
                 }
             }
-            if (hasHidden) ++hiddenBottles;
+            if (hasHidden) {
+                ++hiddenBottles;
+                // C-model approximation: hidden slots in a mono-color bottle are partially redundant.
+                if (bottleHiddenCount == 1) {
+                    effectiveHiddenGroups += 1.0;
+                }
+                else {
+                    const double extraWeight = (hasKnownColor && monoKnownColor) ? 0.35 : 0.6;
+                    effectiveHiddenGroups += 1.0 + static_cast<double>(bottleHiddenCount - 1) * extraWeight;
+                }
+            }
             if (groups > 1) fragmentation += static_cast<double>(groups - 1);
         }
         const double fragmentationComponent = std::min(10.0, fragmentation * 0.9);
-        const int hiddenFree = 2;
-        const int hiddenCap = 7;
+
+        // Hidden C-model: score by effective information groups instead of raw slot count.
+        const double hiddenFree = 1.5;
+        const double hiddenCap = 6.5;
         const double hiddenMaxScore = 8.0;
         double hiddenComponent = 0.0;
-        if (hiddenSlots > hiddenFree) {
-            if (hiddenSlots >= hiddenCap) {
+        if (effectiveHiddenGroups > hiddenFree) {
+            if (effectiveHiddenGroups >= hiddenCap) {
                 hiddenComponent = hiddenMaxScore;
             }
             else {
-                double t = static_cast<double>(hiddenSlots - hiddenFree) / static_cast<double>(hiddenCap - hiddenFree);
+                double t = (effectiveHiddenGroups - hiddenFree) / (hiddenCap - hiddenFree);
                 hiddenComponent = hiddenMaxScore * t;
             }
         }
         if (hiddenBottles >= 2) {
             const double hiddenBottlePressure = static_cast<double>(hiddenBottles - 1);
-            const double hiddenBottleComponent = (std::exp(hiddenBottlePressure * 0.55) - 1.0) * 2.2;
-            hiddenComponent = std::min(16.0, hiddenComponent + hiddenBottleComponent);
+            const double hiddenBottleComponent = (std::exp(hiddenBottlePressure * 0.50) - 1.0) * 1.9;
+            hiddenComponent = std::min(14.0, hiddenComponent + hiddenBottleComponent);
         }
 
         // Evaluate gimmick intensity. Weight each gimmick by type and fill state, then saturate.
@@ -284,9 +312,9 @@ namespace ws {
             ++gimmickCount;
             double weight = 1.0;
             switch (b.gimmick.kind) {
-            case StackGimmickKind::Cloth: weight = 0.6; break; // light constraint
-            case StackGimmickKind::Vine:  weight = 1.0; break; // medium constraint
-            case StackGimmickKind::Bush:  weight = 1.3; break; // heavy constraint
+            case StackGimmickKind::Cloth: weight = 0.70; break; // medium-light constraint
+            case StackGimmickKind::Vine:  weight = 1.00; break; // baseline constraint
+            case StackGimmickKind::Bush:  weight = 0.85; break; // medium constraint
             default: break;
             }
             const double fillRatio = b.capacity > 0 ? static_cast<double>(b.size()) / b.capacity : 0.0;
@@ -303,6 +331,9 @@ namespace ws {
         gimmickComponent -= std::min(1.5, static_cast<double>(emptyBottles) * 0.5); // free space mitigates gimmicks
         gimmickComponent = std::min(50.0, gimmickComponent);
         if (gimmickComponent < 0.0) gimmickComponent = 0.0;
+
+        // Hidden+gimmick overlap correction: avoid over-scoring when both describe the same pressure.
+        const double hiddenGimmickInteractionComponent = -0.35 * std::min(hiddenComponent, gimmickComponent);
 
         // Additional subtle scaling by colour variety beyond the default palette.
         const double colorComponent = std::min(7.0, std::max(0, colors - 5) * 1.2);
@@ -348,7 +379,7 @@ namespace ws {
         }
 
         double score = moveComponent + heuristicComponent + fragmentationComponent + hiddenComponent
-            + emptyBottleComponent + solvedBottleComponent + gimmickComponent + colorComponent + solutionComponent;
+            + emptyBottleComponent + solvedBottleComponent + gimmickComponent + hiddenGimmickInteractionComponent + colorComponent + solutionComponent;
 
         if (score < 0.0) score = 0.0;
         if (score > 100.0) score = 100.0;
@@ -362,6 +393,7 @@ namespace ws {
         solveStats.difficulty.emptyBottleComponent = emptyBottleComponent;
         solveStats.difficulty.solvedBottleComponent = solvedBottleComponent;
         solveStats.difficulty.gimmickComponent = gimmickComponent;
+        solveStats.difficulty.hiddenGimmickInteractionComponent = hiddenGimmickInteractionComponent;
         solveStats.difficulty.colorComponent = colorComponent;
         solveStats.difficulty.solutionComponent = solutionComponent;
         solveStats.difficulty.totalScore = score;
