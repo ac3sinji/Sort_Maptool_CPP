@@ -373,7 +373,12 @@ namespace ws {
 
         // draw bottles
         float cell = 18.0f; // cell height
-        float bottleW = 28.0f; float gap = 12.0f; float baseY = 80.0f;
+        float bottleW = 28.0f;
+        float gap = 12.0f;
+        float bottleHeight = static_cast<float>(s.p.capacity) * cell;
+        float labelPad = 8.0f;
+        float badgePad = 18.0f;
+        float baseY = bottleHeight + badgePad;
         ImDrawList* dl = ImGui::GetWindowDrawList();
         ImVec2 origin = ImGui::GetCursorScreenPos();
 
@@ -413,6 +418,10 @@ namespace ws {
             std::string bottleLabel = std::to_string(i + 1);
             dl->AddText(ImVec2(x, y + 6), IM_COL32(200, 200, 200, 255), bottleLabel.c_str());
         }
+
+        float totalWidth = s.B.empty() ? 0.0f : (bottleW * s.B.size()) + (gap * (s.B.size() - 1));
+        float totalHeight = bottleHeight + badgePad + labelPad + cell;
+        ImGui::Dummy(ImVec2(totalWidth, totalHeight));
 
         ImGui::End();
     }
