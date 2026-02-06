@@ -8,6 +8,7 @@
 #include <filesystem> // for font path existence check
 #include <cstdint>
 #include <string>
+#include <chrono>
 
 namespace ws {
 
@@ -124,6 +125,11 @@ namespace ws {
         uint64_t seedValue = opt.seed;
         if (ImGui::InputScalar("Generator seed (random heights)", ImGuiDataType_U64, &seedValue)) {
             opt.seed = seedValue;
+        }
+        ImGui::SameLine();
+        if (ImGui::Button("Reseed")) {
+            auto now = std::chrono::high_resolution_clock::now().time_since_epoch().count();
+            opt.seed = static_cast<uint64_t>(now) ^ static_cast<uint64_t>(SDL_GetTicks64());
         }
         ImGui::Separator();
         ImGui::Text("Start State");
