@@ -285,7 +285,8 @@ namespace ws {
             gimmickWeight += weight;
         }
         const double normalizedGimmickPressure = bottles > 0 ? gimmickWeight / bottles : 0.0;
-        double gimmickComponent = (1.0 - std::exp(-normalizedGimmickPressure * 3.2)) * 24.0;
+        const double adjustedGimmickPressure = std::pow(normalizedGimmickPressure, 1.35);
+        double gimmickComponent = (1.0 - std::exp(-adjustedGimmickPressure * 3.2)) * 24.0;
         gimmickComponent -= std::min(3.0, static_cast<double>(emptyBottles)); // free space mitigates gimmicks
         if (gimmickComponent < 0.0) gimmickComponent = 0.0;
 
