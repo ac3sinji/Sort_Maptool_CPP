@@ -293,7 +293,16 @@ namespace ws {
         const double colorComponent = std::min(7.0, std::max(0, colors - 5) * 1.2);
 
         // Extra relief for puzzles with more empty bottles (player flexibility).
-        const double emptyBottleComponent = -std::min(14.0, static_cast<double>(emptyBottles) * 3.0);
+        double emptyBottleComponent = 0.0;
+        if (emptyBottles == 1) {
+            emptyBottleComponent = -2.5;
+        }
+        else if (emptyBottles == 2) {
+            emptyBottleComponent = -5.5;
+        }
+        else if (emptyBottles >= 3) {
+            emptyBottleComponent = -10.5;
+        }
 
         // Reward already-solved bottles to reflect player-perceived progress.
         const double solvedBottleComponent = -std::min(8.0, static_cast<double>(monoFullBottles) * 1.5);
@@ -328,6 +337,9 @@ namespace ws {
 
         if (score < 0.0) score = 0.0;
         if (score > 100.0) score = 100.0;
+        if (emptyBottles >= 3 && score >= 25.0) {
+            score = 24.9;
+        }
         solveStats.difficulty.moveComponent = moveComponent;
         solveStats.difficulty.heuristicComponent = heuristicComponent;
         solveStats.difficulty.fragmentationComponent = fragmentationComponent;
