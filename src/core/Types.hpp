@@ -66,10 +66,9 @@ namespace ws {
     inline std::string labelForScore(double s) {
         if (s < 10) return "Very Easy";
         if (s < 25) return "Easy";
-        if (s < 45) return "Normal";
-        if (s < 65) return "Hard";
-        if (s < 85) return "Very Hard";
-        return "Insane";
+        if (s < 60) return "Normal";
+        if (s < 72) return "Hard";
+        return "Very Hard";
     }
 
 } // namespace ws
