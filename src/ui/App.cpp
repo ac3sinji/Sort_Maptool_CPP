@@ -372,6 +372,22 @@ namespace ws {
         }
         const auto& s = viewState;
 
+        ImGui::Separator();
+        ImGui::Text("Color legend:");
+        for (int c = 1; c <= s.p.numColors; ++c) {
+            ImGui::PushID(c);
+            ImGui::ColorButton("##legend_color", ImColor(colorFor((Color)c)),
+                ImGuiColorEditFlags_NoTooltip | ImGuiColorEditFlags_NoDragDrop,
+                ImVec2(14.0f, 14.0f));
+            ImGui::SameLine(0.0f, 4.0f);
+            ImGui::Text("%d", c);
+            ImGui::PopID();
+
+            if (c % 8 != 0 && c != s.p.numColors) {
+                ImGui::SameLine(0.0f, 12.0f);
+            }
+        }
+
         // draw bottles
         float cell = 18.0f; // cell height
         float bottleW = 28.0f;
