@@ -21,6 +21,7 @@ namespace ws {
             double emptyBottleComponent{ 0.0 };
             double solvedBottleComponent{ 0.0 };
             double gimmickComponent{ 0.0 };
+            double hiddenGimmickInteractionComponent{ 0.0 };
             double colorComponent{ 0.0 };
             double solutionComponent{ 0.0 };
             double totalScore{ 0.0 };

@@ -332,7 +332,8 @@ namespace ws {
         ImGui::Text("Difficulty breakdown:");
         ImGui::Text("  Move: %.1f  Heuristic: %.1f  Fragment: %.1f", g.difficulty.moveComponent, g.difficulty.heuristicComponent, g.difficulty.fragmentationComponent);
         ImGui::Text("  Hidden: %.1f  Empty: %.1f  Solved: %.1f", g.difficulty.hiddenComponent, g.difficulty.emptyBottleComponent, g.difficulty.solvedBottleComponent);
-        ImGui::Text("  Gimmick: %.1f  Color: %.1f  Solution: %.1f", g.difficulty.gimmickComponent, g.difficulty.colorComponent, g.difficulty.solutionComponent);
+        ImGui::Text("  Gimmick: %.1f  Hidden×Gimmick: %.1f", g.difficulty.gimmickComponent, g.difficulty.hiddenGimmickInteractionComponent);
+        ImGui::Text("  Color: %.1f  Solution: %.1f", g.difficulty.colorComponent, g.difficulty.solutionComponent);
         ImGui::Text("  Total: %.1f", g.difficulty.totalScore);
 
         const auto& solutionMoves = g.solutionMoves;
