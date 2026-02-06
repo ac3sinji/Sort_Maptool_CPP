@@ -236,6 +236,7 @@ namespace ws {
         // Count fragmentation and hidden information.
         double fragmentation = 0.0;
         int hiddenSlots = 0;
+        int hiddenBottles = 0;
         int emptyBottles = 0;
         int monoFullBottles = 0;
         for (const auto& b : s.B) {
@@ -243,14 +244,16 @@ namespace ws {
             if (b.isMonoFull()) { ++monoFullBottles; }
             Color prev = 0;
             int groups = 0;
+            bool hasHidden = false;
             for (const auto& sl : b.slots) {
-                if (sl.hidden) ++hiddenSlots;
+                if (sl.hidden) { ++hiddenSlots; hasHidden = true; }
                 if (sl.c == 0) continue;
                 if (sl.c != prev) {
                     ++groups;
                     prev = sl.c;
                 }
             }
+            if (hasHidden) ++hiddenBottles;
             if (groups > 1) fragmentation += static_cast<double>(groups - 1);
         }
         const double fragmentationComponent = std::min(10.0, fragmentation * 0.9);
@@ -266,6 +269,11 @@ namespace ws {
                 double t = static_cast<double>(hiddenSlots - hiddenFree) / static_cast<double>(hiddenCap - hiddenFree);
                 hiddenComponent = hiddenMaxScore * t;
             }
+        }
+        if (hiddenBottles >= 2) {
+            const double hiddenBottlePressure = static_cast<double>(hiddenBottles - 1);
+            const double hiddenBottleComponent = (std::exp(hiddenBottlePressure * 0.55) - 1.0) * 2.2;
+            hiddenComponent = std::min(16.0, hiddenComponent + hiddenBottleComponent);
         }
 
         // Evaluate gimmick intensity. Weight each gimmick by type and fill state, then saturate.
