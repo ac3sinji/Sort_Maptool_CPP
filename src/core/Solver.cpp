@@ -323,17 +323,18 @@ namespace ws {
             gimmickWeight += weight;
         }
         const double normalizedGimmickPressure = bottles > 0 ? gimmickWeight / bottles : 0.0;
-        const double adjustedGimmickPressure = std::pow(normalizedGimmickPressure, 1.15);
-        double gimmickComponent = (1.0 - std::exp(-adjustedGimmickPressure * 4.2)) * 30.0;
-        if (gimmickCount >= 1) gimmickComponent += 8.0;
-        if (gimmickCount >= 2) gimmickComponent += 6.0;
-        if (gimmickCount >= 3) gimmickComponent += 4.0;
+        const double adjustedGimmickPressure = std::pow(normalizedGimmickPressure, 1.12);
+        // Keep gimmicks meaningful, but avoid over-labeling into Very Hard on otherwise manageable maps.
+        double gimmickComponent = (1.0 - std::exp(-adjustedGimmickPressure * 3.4)) * 22.0;
+        if (gimmickCount >= 1) gimmickComponent += 4.0;
+        if (gimmickCount >= 2) gimmickComponent += 3.0;
+        if (gimmickCount >= 3) gimmickComponent += 2.0;
         gimmickComponent -= std::min(1.5, static_cast<double>(emptyBottles) * 0.5); // free space mitigates gimmicks
-        gimmickComponent = std::min(50.0, gimmickComponent);
+        gimmickComponent = std::min(30.0, gimmickComponent);
         if (gimmickComponent < 0.0) gimmickComponent = 0.0;
 
         // Hidden+gimmick overlap correction: avoid over-scoring when both describe the same pressure.
-        const double hiddenGimmickInteractionComponent = -0.35 * std::min(hiddenComponent, gimmickComponent);
+        const double hiddenGimmickInteractionComponent = -0.45 * std::min(hiddenComponent, gimmickComponent);
 
         // Additional subtle scaling by colour variety beyond the default palette.
         const double colorComponent = std::min(7.0, std::max(0, colors - 5) * 1.2);
