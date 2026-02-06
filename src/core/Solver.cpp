@@ -222,20 +222,25 @@ namespace ws {
         const int colors = s.p.numColors;
         const int bottles = static_cast<int>(s.B.size());
 
-        // Base move pressure – emphasise longer optimal routes but with diminishing returns.
+        // Base move pressure: compare against puzzle scale so short solutions stay low.
         const double moveDepth = std::max(0, minMoves);
-        const double moveComponent = std::min(50.0, std::pow(moveDepth + 1.0, 1.2) * 1.45);
+        const double totalCells = static_cast<double>(colors * s.p.capacity);
+        const double expectedMoves = std::max(1.0, totalCells * 1.1);
+        const double moveRatio = moveDepth / expectedMoves;
+        const double moveComponent = std::clamp(std::pow(std::max(0.0, moveRatio), 1.35) * 40.0, 0.0, 45.0);
 
         // Structural complexity derived from the IDA* heuristic (fragmentation, blocking, etc.).
         const int h0 = heuristic(s);
-        const double heuristicComponent = std::min(22.0, std::pow(static_cast<double>(std::max(0, h0)), 1.15) * 1.3);
+        const double heuristicComponent = std::min(18.0, std::pow(static_cast<double>(std::max(0, h0)), 1.12) * 1.15);
 
         // Count fragmentation and hidden information.
         double fragmentation = 0.0;
         int hiddenSlots = 0;
         int emptyBottles = 0;
+        int monoFullBottles = 0;
         for (const auto& b : s.B) {
             if (b.isEmpty()) { ++emptyBottles; continue; }
+            if (b.isMonoFull()) { ++monoFullBottles; }
             Color prev = 0;
             int groups = 0;
             for (const auto& sl : b.slots) {
@@ -248,10 +253,10 @@ namespace ws {
             }
             if (groups > 1) fragmentation += static_cast<double>(groups - 1);
         }
-        const double fragmentationComponent = std::min(12.0, fragmentation * 1.0);
+        const double fragmentationComponent = std::min(10.0, fragmentation * 0.9);
         const int hiddenFree = 2;
         const int hiddenCap = 7;
-        const double hiddenMaxScore = 6.0;
+        const double hiddenMaxScore = 8.0;
         double hiddenComponent = 0.0;
         if (hiddenSlots > hiddenFree) {
             if (hiddenSlots >= hiddenCap) {
@@ -280,15 +285,18 @@ namespace ws {
             gimmickWeight += weight;
         }
         const double normalizedGimmickPressure = bottles > 0 ? gimmickWeight / bottles : 0.0;
-        double gimmickComponent = (1.0 - std::exp(-normalizedGimmickPressure * 2.8)) * 18.0;
-        gimmickComponent -= std::min(4.0, static_cast<double>(emptyBottles)); // free space mitigates gimmicks
+        double gimmickComponent = (1.0 - std::exp(-normalizedGimmickPressure * 3.2)) * 24.0;
+        gimmickComponent -= std::min(3.0, static_cast<double>(emptyBottles)); // free space mitigates gimmicks
         if (gimmickComponent < 0.0) gimmickComponent = 0.0;
 
         // Additional subtle scaling by colour variety beyond the default palette.
         const double colorComponent = std::min(7.0, std::max(0, colors - 5) * 1.2);
 
         // Extra relief for puzzles with more empty bottles (player flexibility).
-        const double emptyBottleComponent = -std::min(10.0, static_cast<double>(emptyBottles) * 2.0);
+        const double emptyBottleComponent = -std::min(14.0, static_cast<double>(emptyBottles) * 3.0);
+
+        // Reward already-solved bottles to reflect player-perceived progress.
+        const double solvedBottleComponent = -std::min(8.0, static_cast<double>(monoFullBottles) * 1.5);
 
         // Reward/punish based on how many optimal answers the puzzle offers.
         double solutionComponent = 0.0;
@@ -315,7 +323,8 @@ namespace ws {
             }
         }
 
-        double score = moveComponent + heuristicComponent + fragmentationComponent + hiddenComponent + emptyBottleComponent + gimmickComponent + colorComponent + solutionComponent;
+        double score = moveComponent + heuristicComponent + fragmentationComponent + hiddenComponent
+            + emptyBottleComponent + solvedBottleComponent + gimmickComponent + colorComponent + solutionComponent;
 
         if (score < 0.0) score = 0.0;
         if (score > 100.0) score = 100.0;
@@ -324,6 +333,7 @@ namespace ws {
         solveStats.difficulty.fragmentationComponent = fragmentationComponent;
         solveStats.difficulty.hiddenComponent = hiddenComponent;
         solveStats.difficulty.emptyBottleComponent = emptyBottleComponent;
+        solveStats.difficulty.solvedBottleComponent = solvedBottleComponent;
         solveStats.difficulty.gimmickComponent = gimmickComponent;
         solveStats.difficulty.colorComponent = colorComponent;
         solveStats.difficulty.solutionComponent = solutionComponent;

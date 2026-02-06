@@ -19,6 +19,7 @@ namespace ws {
             double fragmentationComponent{ 0.0 };
             double hiddenComponent{ 0.0 };
             double emptyBottleComponent{ 0.0 };
+            double solvedBottleComponent{ 0.0 };
             double gimmickComponent{ 0.0 };
             double colorComponent{ 0.0 };
             double solutionComponent{ 0.0 };
