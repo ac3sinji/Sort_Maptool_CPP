@@ -270,8 +270,10 @@ namespace ws {
 
         // Evaluate gimmick intensity. Weight each gimmick by type and fill state, then saturate.
         double gimmickWeight = 0.0;
+        int gimmickCount = 0;
         for (const auto& b : s.B) {
             if (b.gimmick.kind == StackGimmickKind::None) continue;
+            ++gimmickCount;
             double weight = 1.0;
             switch (b.gimmick.kind) {
             case StackGimmickKind::Cloth: weight = 0.6; break; // light constraint
@@ -285,9 +287,13 @@ namespace ws {
             gimmickWeight += weight;
         }
         const double normalizedGimmickPressure = bottles > 0 ? gimmickWeight / bottles : 0.0;
-        const double adjustedGimmickPressure = std::pow(normalizedGimmickPressure, 1.35);
-        double gimmickComponent = (1.0 - std::exp(-adjustedGimmickPressure * 3.2)) * 24.0;
-        gimmickComponent -= std::min(3.0, static_cast<double>(emptyBottles)); // free space mitigates gimmicks
+        const double adjustedGimmickPressure = std::pow(normalizedGimmickPressure, 1.15);
+        double gimmickComponent = (1.0 - std::exp(-adjustedGimmickPressure * 4.2)) * 30.0;
+        if (gimmickCount >= 1) gimmickComponent += 8.0;
+        if (gimmickCount >= 2) gimmickComponent += 6.0;
+        if (gimmickCount >= 3) gimmickComponent += 4.0;
+        gimmickComponent -= std::min(1.5, static_cast<double>(emptyBottles) * 0.5); // free space mitigates gimmicks
+        gimmickComponent = std::min(50.0, gimmickComponent);
         if (gimmickComponent < 0.0) gimmickComponent = 0.0;
 
         // Additional subtle scaling by colour variety beyond the default palette.
