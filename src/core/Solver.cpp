@@ -295,13 +295,13 @@ namespace ws {
         // Extra relief for puzzles with more empty bottles (player flexibility).
         double emptyBottleComponent = 0.0;
         if (emptyBottles == 1) {
-            emptyBottleComponent = -2.5;
+            emptyBottleComponent = -5.0;
         }
         else if (emptyBottles == 2) {
-            emptyBottleComponent = -5.5;
+            emptyBottleComponent = -12.0;
         }
         else if (emptyBottles >= 3) {
-            emptyBottleComponent = -10.5;
+            emptyBottleComponent = -22.0;
         }
 
         // Reward already-solved bottles to reflect player-perceived progress.
