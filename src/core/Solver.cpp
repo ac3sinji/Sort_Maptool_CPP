@@ -288,10 +288,10 @@ namespace ws {
         }
         const double normalizedGimmickPressure = bottles > 0 ? gimmickWeight / bottles : 0.0;
         const double adjustedGimmickPressure = std::pow(normalizedGimmickPressure, 1.15);
-        double gimmickComponent = (1.0 - std::exp(-adjustedGimmickPressure * 4.6)) * 32.0;
-        if (gimmickCount >= 1) gimmickComponent += 10.0;
-        if (gimmickCount >= 2) gimmickComponent += 12.0;
-        if (gimmickCount >= 3) gimmickComponent += 6.0;
+        double gimmickComponent = (1.0 - std::exp(-adjustedGimmickPressure * 4.2)) * 30.0;
+        if (gimmickCount >= 1) gimmickComponent += 8.0;
+        if (gimmickCount >= 2) gimmickComponent += 6.0;
+        if (gimmickCount >= 3) gimmickComponent += 4.0;
         gimmickComponent -= std::min(1.5, static_cast<double>(emptyBottles) * 0.5); // free space mitigates gimmicks
         gimmickComponent = std::min(50.0, gimmickComponent);
         if (gimmickComponent < 0.0) gimmickComponent = 0.0;
