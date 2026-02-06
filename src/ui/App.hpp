@@ -22,6 +22,7 @@ namespace ws {
         int vineCount{ 0 };
         int bushCount{ 0 };
         int questionCount{ 0 };
+        int questionMaxPerBottle{ 0 };
         std::vector<Generated> generated; // in‑memory pool
         int currentIndex{ -1 };
         int viewIndexInput{ 1 };

@@ -11,13 +11,14 @@ namespace ws {
 
     void Generator::setBase(const State& b) { base = b; }
 
-    std::optional<State> Generator::buildRandomTemplate(int clothCount, int vineCount, int bushCount, int questionCount, std::string* reason) {
+    std::optional<State> Generator::buildRandomTemplate(int clothCount, int vineCount, int bushCount,
+        int questionCount, int questionMaxPerBottle, std::string* reason) {
         auto setReason = [&](const std::string& msg) {
             if (reason) *reason = msg;
         };
         if (reason) reason->clear();
 
-        if (clothCount < 0 || vineCount < 0 || bushCount < 0 || questionCount < 0) {
+        if (clothCount < 0 || vineCount < 0 || bushCount < 0 || questionCount < 0 || questionMaxPerBottle < 0) {
             setReason("Counts must be non-negative.");
             return std::nullopt;
         }
@@ -127,19 +128,27 @@ namespace ws {
         const bool excludeTopSlots = true;
         std::vector<std::pair<int, int>> hideCandidates;
         hideCandidates.reserve((size_t)expected);
+        int totalQuestionCapacity = 0;
         for (int bi = 0; bi < p.numBottles; ++bi) {
             const auto& b = tpl.B[bi];
-            int limit = (int)b.slots.size();
-            if (excludeTopSlots && limit > 0) {
-                --limit;
+            int bottleCapacity = (int)b.slots.size();
+            if (excludeTopSlots && bottleCapacity > 0) {
+                --bottleCapacity;
             }
-            for (int si = 0; si < limit; ++si) {
+            if (questionMaxPerBottle > 0) {
+                bottleCapacity = std::min(bottleCapacity, questionMaxPerBottle);
+            }
+            bottleCapacity = std::max(0, bottleCapacity);
+            totalQuestionCapacity += bottleCapacity;
+            for (int si = 0; si < bottleCapacity; ++si) {
                 hideCandidates.emplace_back(bi, si);
             }
         }
-        if (questionCount > (int)hideCandidates.size()) {
+        if (questionCount > totalQuestionCapacity) {
             std::string policyNote = excludeTopSlots ? " (top slots excluded)" : "";
-            setReason("Question count exceeds filled slots" + policyNote + ".");
+            setReason("Question count exceeds allowed capacity" + policyNote +
+                " and per-bottle limit (requested " + std::to_string(questionCount) +
+                ", allowed " + std::to_string(totalQuestionCapacity) + ").");
             return std::nullopt;
         }
         for (size_t i = 0; i < hideCandidates.size(); ++i) {
