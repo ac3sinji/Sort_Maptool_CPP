@@ -1,6 +1,6 @@
 // ========================= src/core/Generator.hpp =========================
 #pragma once
-#include "State.hpp"
+#include "Solver.hpp"
 #include <optional>
 #include <string>
 
@@ -20,7 +20,15 @@ namespace ws {
         bool randomizeHeights{ true }; // 랜덤 높이 배분 사용 여부 (auto template)
     };
 
-    struct Generated { State state; int mixCount{ 0 }; int minMoves{ -1 }; double diffScore{ 0.0 }; std::string diffLabel; };
+    struct Generated {
+        State state;
+        int mixCount{ 0 };
+        int minMoves{ -1 };
+        double diffScore{ 0.0 };
+        std::string diffLabel;
+        std::vector<Move> solutionMoves;
+        SolveResult::DifficultyBreakdown difficulty;
+    };
 
     // If initialDistribution is provided, it overrides the default goal distribution.
     // The counts MUST sum to numColors*capacity, and each bottle vector has bottom->top colors (0 means empty cell at bottom is not stored; provide exact heights).

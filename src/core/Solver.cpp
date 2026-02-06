@@ -101,6 +101,9 @@ namespace ws {
         auto t0 = clock::now();
 
         SolveResult result;
+        std::vector<Move> path;
+        std::vector<Move> solutionMoves;
+        bool foundPath = false;
 
         if (start.isSolved()) {
             result.solved = true;
@@ -124,7 +127,13 @@ namespace ws {
 
             int f = g + heuristic(s);
             if (f > boundVal) return f;
-            if (s.isSolved()) return -g; // found, return negative depth
+            if (s.isSolved()) {
+                if (!foundPath) {
+                    solutionMoves = path;
+                    foundPath = true;
+                }
+                return -g; // found, return negative depth
+            }
 
             size_t h = s.hash();
             if (visited.count(h)) return std::numeric_limits<int>::max();
@@ -145,7 +154,9 @@ namespace ws {
 
             for (const auto& c : cand) {
                 State s2 = s; s2.apply(c.m);
+                path.push_back(c.m);
                 int t = dfs(s2, g + 1, boundVal);
+                if (!path.empty()) path.pop_back();
                 if (t < 0) return t; // solved at depth g'
                 if (t < minNext) minNext = t;
                 if (searchTimedOut) break;
@@ -176,6 +187,7 @@ namespace ws {
         }
 
         result.minMoves = solvedDepth;
+        result.solutionMoves = std::move(solutionMoves);
         result.distinctSolutions = 1;
 
         if (!timeOk()) {
@@ -204,26 +216,31 @@ namespace ws {
         return result;
     }
 
-    double Solver::estimateDifficulty(const State& s, const SolveResult& solveStats) const {
+    double Solver::estimateDifficulty(const State& s, SolveResult& solveStats) const {
         const int minMoves = solveStats.minMoves;
         // Compose from heuristic features with softer contribution from gimmicks.
         const int colors = s.p.numColors;
         const int bottles = static_cast<int>(s.B.size());
 
-        // Base move pressure – emphasise longer optimal routes but with diminishing returns.
+        // Base move pressure: compare against puzzle scale so short solutions stay low.
         const double moveDepth = std::max(0, minMoves);
-        const double moveComponent = std::min(45.0, std::pow(moveDepth + 1.0, 1.1) * 1.35);
+        const double totalCells = static_cast<double>(colors * s.p.capacity);
+        const double expectedMoves = std::max(1.0, totalCells * 1.1);
+        const double moveRatio = moveDepth / expectedMoves;
+        const double moveComponent = std::clamp(std::pow(std::max(0.0, moveRatio), 1.35) * 40.0, 0.0, 45.0);
 
         // Structural complexity derived from the IDA* heuristic (fragmentation, blocking, etc.).
         const int h0 = heuristic(s);
-        const double heuristicComponent = std::min(25.0, std::pow(static_cast<double>(std::max(0, h0)), 1.2) * 1.6);
+        const double heuristicComponent = std::min(18.0, std::pow(static_cast<double>(std::max(0, h0)), 1.12) * 1.15);
 
         // Count fragmentation and hidden information.
         double fragmentation = 0.0;
         int hiddenSlots = 0;
         int emptyBottles = 0;
+        int monoFullBottles = 0;
         for (const auto& b : s.B) {
             if (b.isEmpty()) { ++emptyBottles; continue; }
+            if (b.isMonoFull()) { ++monoFullBottles; }
             Color prev = 0;
             int groups = 0;
             for (const auto& sl : b.slots) {
@@ -236,10 +253,10 @@ namespace ws {
             }
             if (groups > 1) fragmentation += static_cast<double>(groups - 1);
         }
-        const double fragmentationComponent = std::min(15.0, fragmentation * 1.25);
+        const double fragmentationComponent = std::min(10.0, fragmentation * 0.9);
         const int hiddenFree = 2;
         const int hiddenCap = 7;
-        const double hiddenMaxScore = 6.0;
+        const double hiddenMaxScore = 8.0;
         double hiddenComponent = 0.0;
         if (hiddenSlots > hiddenFree) {
             if (hiddenSlots >= hiddenCap) {
@@ -268,12 +285,27 @@ namespace ws {
             gimmickWeight += weight;
         }
         const double normalizedGimmickPressure = bottles > 0 ? gimmickWeight / bottles : 0.0;
-        double gimmickComponent = (1.0 - std::exp(-normalizedGimmickPressure * 2.8)) * 18.0;
-        gimmickComponent -= std::min(5.0, static_cast<double>(emptyBottles)); // free space mitigates gimmicks
+        double gimmickComponent = (1.0 - std::exp(-normalizedGimmickPressure * 3.2)) * 24.0;
+        gimmickComponent -= std::min(3.0, static_cast<double>(emptyBottles)); // free space mitigates gimmicks
         if (gimmickComponent < 0.0) gimmickComponent = 0.0;
 
         // Additional subtle scaling by colour variety beyond the default palette.
         const double colorComponent = std::min(7.0, std::max(0, colors - 5) * 1.2);
+
+        // Extra relief for puzzles with more empty bottles (player flexibility).
+        double emptyBottleComponent = 0.0;
+        if (emptyBottles == 1) {
+            emptyBottleComponent = -2.5;
+        }
+        else if (emptyBottles == 2) {
+            emptyBottleComponent = -5.5;
+        }
+        else if (emptyBottles >= 3) {
+            emptyBottleComponent = -10.5;
+        }
+
+        // Reward already-solved bottles to reflect player-perceived progress.
+        const double solvedBottleComponent = -std::min(8.0, static_cast<double>(monoFullBottles) * 1.5);
 
         // Reward/punish based on how many optimal answers the puzzle offers.
         double solutionComponent = 0.0;
@@ -300,10 +332,24 @@ namespace ws {
             }
         }
 
-        double score = moveComponent + heuristicComponent + fragmentationComponent + hiddenComponent + gimmickComponent + colorComponent + solutionComponent;
+        double score = moveComponent + heuristicComponent + fragmentationComponent + hiddenComponent
+            + emptyBottleComponent + solvedBottleComponent + gimmickComponent + colorComponent + solutionComponent;
 
         if (score < 0.0) score = 0.0;
         if (score > 100.0) score = 100.0;
+        if (emptyBottles >= 3 && score >= 25.0) {
+            score = 24.9;
+        }
+        solveStats.difficulty.moveComponent = moveComponent;
+        solveStats.difficulty.heuristicComponent = heuristicComponent;
+        solveStats.difficulty.fragmentationComponent = fragmentationComponent;
+        solveStats.difficulty.hiddenComponent = hiddenComponent;
+        solveStats.difficulty.emptyBottleComponent = emptyBottleComponent;
+        solveStats.difficulty.solvedBottleComponent = solvedBottleComponent;
+        solveStats.difficulty.gimmickComponent = gimmickComponent;
+        solveStats.difficulty.colorComponent = colorComponent;
+        solveStats.difficulty.solutionComponent = solutionComponent;
+        solveStats.difficulty.totalScore = score;
         return score;
     }
 
