@@ -170,6 +170,48 @@ namespace ws {
             return createRandomMixedFromHeights(*base);
         }
 
+        // 템플릿 + startMixed OFF => goal의 "색상 블록"을 템플릿 높이에 맞춰 배치한다.
+        // 이렇게 해야 부분 높이 템플릿에서 분할 이동이 가능해지고, scramble이 의미 있게 동작한다.
+        if (base && !opt.startMixed && !initial) {
+            State st; st.p = p; st.B.resize(p.numBottles);
+            auto heights = computeHeightsFromTemplate(*base);
+            for (size_t i = 0; i < st.B.size(); ++i) {
+                st.B[i].capacity = p.capacity;
+                if (i < base->B.size()) {
+                    st.B[i].gimmick = base->B[i].gimmick;
+                }
+            }
+
+            int fillBottle = 0;
+            for (Color c = 1; c <= p.numColors; ++c) {
+                int remain = p.capacity;
+                while (remain > 0 && fillBottle < p.numBottles) {
+                    auto& b = st.B[fillBottle];
+                    int target = (fillBottle < (int)heights.size()) ? heights[fillBottle] : 0;
+                    int free = std::max(0, target - (int)b.slots.size());
+                    if (free <= 0) {
+                        ++fillBottle;
+                        continue;
+                    }
+                    int put = std::min(free, remain);
+                    for (int k = 0; k < put; ++k) b.slots.push_back(Slot{ c,false });
+                    remain -= put;
+                    if ((int)b.slots.size() >= target) ++fillBottle;
+                }
+            }
+
+            for (size_t i = 0; i < st.B.size() && i < base->B.size(); ++i) {
+                const auto& src = base->B[i].slots;
+                auto& dst = st.B[i].slots;
+                for (size_t k = 0; k < dst.size() && k < src.size(); ++k) {
+                    dst[k].hidden = src[k].hidden;
+                }
+            }
+
+            st.refreshLocks();
+            return st;
+        }
+
         // startMixed가 꺼져 있으면 기본 정렬(goal) 상태에서 시작한다.
         // 템플릿을 사용하는 경우에도 색 배치는 goal(병 번호=색 번호)로 맞추고,
         // 템플릿의 기믹/숨김 정보만 가져와 scramble 과정을 보여준다.
