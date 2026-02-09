@@ -137,6 +137,7 @@ namespace ws {
         ImGui::Separator();
         ImGui::Text("Start State");
         ImGui::Checkbox("Start mixed (random deal)", &opt.startMixed);
+        ImGui::TextDisabled("On: starts from a random mixed deal. Off: starts near solved and stores scramble steps.");
         ImGui::BeginDisabled(!opt.startMixed);
         InputIntClamped("Reserved empty bottles", &opt.reservedEmpty, 0, std::max(0, p.numBottles - 1));
         InputIntClamped("Max same-color run", &opt.maxRunPerBottle, 0, p.capacity);
