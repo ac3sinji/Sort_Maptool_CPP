@@ -27,6 +27,7 @@ namespace ws {
         int currentIndex{ -1 };
         int viewIndexInput{ 1 };
         int playbackStep{ 0 };
+        bool playbackScramble{ false };
         std::string savePath{ "maps.csv" };
         std::string loadPath{ "maps.csv" };
         State tpl;                 // 생성용 템플릿(병별 초기 높이 + 기믹)

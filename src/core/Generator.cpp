@@ -192,11 +192,12 @@ namespace ws {
         return st;
     }
 
-    void Generator::scramble(State& s, int& outMix) {
+    void Generator::scramble(State& s, int& outMix, std::vector<Move>* outSteps) {
         // Reverse‑move scramble from goal‑like state: apply legal moves that are NOT immediately undoing previous
         int target = rng.irange(opt.mixMin, opt.mixMax);
         outMix = 0;
         Move last{ -1,-1,0 };
+        if (outSteps) outSteps->clear();
         for (int step = 0; step < target; ++step) {
             // collect legal moves
             std::vector<Move> mv;
@@ -212,6 +213,7 @@ namespace ws {
             if (mv.empty()) break;
             auto m = mv[rng.irange(0, (int)mv.size() - 1)];
             s.apply(m);
+            if (outSteps) outSteps->push_back(m);
             last = m; ++outMix;
         }
     }
@@ -226,11 +228,13 @@ namespace ws {
     std::optional<Generated> Generator::makeOne(const InitialDistribution* initial) {
         for (int tries = 0; tries < opt.gimmickPlacementTries; ++tries) {
             State s = createStartFromInitial(initial);
+            State scrambleStart = s;
             int mix = 0;
+            std::vector<Move> scrambleMoves;
 
             // NEW: startMixed면 별도의 scramble 불필요
             if (!opt.startMixed) {
-                scramble(s, mix);
+                scramble(s, mix, &scrambleMoves);
             }
             else {
                 mix = s.p.numColors * s.p.capacity; // 대충 섞임 강도 표기로 사용
@@ -243,9 +247,10 @@ namespace ws {
             Solver solver(opt.solveTimeMs);
             auto res = solver.solve(s);
             if (res.solved) {
-                Generated g; g.state = s; g.mixCount = mix; g.minMoves = res.minMoves;
+                Generated g; g.state = s; g.scrambleStart = scrambleStart; g.mixCount = mix; g.minMoves = res.minMoves;
                 g.diffScore = solver.estimateDifficulty(s, res);
                 g.diffLabel = labelForScore(g.diffScore);
+                g.scrambleMoves = std::move(scrambleMoves);
                 g.solutionMoves = std::move(res.solutionMoves);
                 g.difficulty = res.difficulty;
                 return g;
