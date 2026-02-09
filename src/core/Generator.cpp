@@ -170,11 +170,14 @@ namespace ws {
             return createRandomMixedFromHeights(*base);
         }
 
-        // 템플릿 + startMixed OFF => goal의 "색상 블록"을 템플릿 높이에 맞춰 배치한다.
-        // 이렇게 해야 부분 높이 템플릿에서 분할 이동이 가능해지고, scramble이 의미 있게 동작한다.
+        // 템플릿 + startMixed OFF => 템플릿의 높이/기믹/숨김은 유지하되,
+        // 색은 생성 파라미터(numColors*capacity)에 맞게 다시 채운다.
+        // 템플릿 편집기의 기본 페인트 색(1번)으로만 채워진 상태를 그대로 쓰면
+        // 모든 슬롯이 1번으로 보일 수 있으므로, 여기서 색 분포를 보정한다.
         if (base && !opt.startMixed && !initial) {
             State st; st.p = p; st.B.resize(p.numBottles);
             auto heights = computeHeightsFromTemplate(*base);
+
             for (size_t i = 0; i < st.B.size(); ++i) {
                 st.B[i].capacity = p.capacity;
                 if (i < base->B.size()) {
@@ -182,21 +185,22 @@ namespace ws {
                 }
             }
 
-            int fillBottle = 0;
+            std::vector<Color> bag;
+            bag.reserve((size_t)p.numColors * (size_t)p.capacity);
             for (Color c = 1; c <= p.numColors; ++c) {
-                int remain = p.capacity;
-                while (remain > 0 && fillBottle < p.numBottles) {
-                    auto& b = st.B[fillBottle];
-                    int target = (fillBottle < (int)heights.size()) ? heights[fillBottle] : 0;
-                    int free = std::max(0, target - (int)b.slots.size());
-                    if (free <= 0) {
-                        ++fillBottle;
-                        continue;
-                    }
-                    int put = std::min(free, remain);
-                    for (int k = 0; k < put; ++k) b.slots.push_back(Slot{ c,false });
-                    remain -= put;
-                    if ((int)b.slots.size() >= target) ++fillBottle;
+                for (int k = 0; k < p.capacity; ++k) bag.push_back(c);
+            }
+            for (size_t i = 0; i < bag.size(); ++i) {
+                size_t j = (size_t)rng.irange((int)i, (int)bag.size() - 1);
+                std::swap(bag[i], bag[j]);
+            }
+
+            size_t pos = 0;
+            for (int i = 0; i < p.numBottles; ++i) {
+                int h = (i < (int)heights.size()) ? heights[i] : 0;
+                h = std::clamp(h, 0, p.capacity);
+                for (int k = 0; k < h && pos < bag.size(); ++k, ++pos) {
+                    st.B[i].slots.push_back(Slot{ bag[pos],false });
                 }
             }
 
