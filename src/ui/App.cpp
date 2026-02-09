@@ -365,13 +365,22 @@ namespace ws {
             playbackScramble = false;
             playbackStep = 0;
         }
-        if (canScramblePlayback) {
-            if (ImGui::Checkbox("Show scramble steps", &playbackScramble)) {
-                playbackStep = 0;
-            }
+
+        ImGui::Separator();
+        ImGui::Text("Playback mode:");
+        if (ImGui::RadioButton("Solution", !playbackScramble)) {
+            playbackScramble = false;
+            playbackStep = 0;
         }
-        else {
-            ImGui::TextDisabled("No scramble path recorded.");
+        ImGui::SameLine();
+        if (!canScramblePlayback) ImGui::BeginDisabled();
+        if (ImGui::RadioButton("Scramble", playbackScramble)) {
+            playbackScramble = true;
+            playbackStep = 0;
+        }
+        if (!canScramblePlayback) ImGui::EndDisabled();
+        if (!canScramblePlayback) {
+            ImGui::TextDisabled("Scramble steps are available for maps generated with Start mixed disabled.");
         }
 
         const auto& activeMoves = playbackScramble ? g.scrambleMoves : g.solutionMoves;
