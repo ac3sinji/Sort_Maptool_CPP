@@ -39,6 +39,7 @@ namespace ws {
             currentIndex = idx;
             viewIndexInput = idx + 1;
             playbackStep = 0;
+            playbackScramble = false;
         }
     }
 
@@ -288,6 +289,7 @@ namespace ws {
             currentIndex = -1;
             viewIndexInput = 1;
             playbackStep = 0;
+            playbackScramble = false;
         }
 
         ImGui::Separator();
@@ -358,15 +360,32 @@ namespace ws {
         ImGui::Text("  Color: %.1f  Solution: %.1f", g.difficulty.colorComponent, g.difficulty.solutionComponent);
         ImGui::Text("  Total: %.1f", g.difficulty.totalScore);
 
-        const auto& solutionMoves = g.solutionMoves;
-        const int maxStep = static_cast<int>(solutionMoves.size());
+        bool canScramblePlayback = !g.scrambleMoves.empty() && !g.scrambleStart.B.empty();
+
+        ImGui::Separator();
+        ImGui::Text("Playback mode:");
+        if (ImGui::RadioButton("Solution", !playbackScramble)) {
+            playbackScramble = false;
+            playbackStep = 0;
+        }
+        ImGui::SameLine();
+        if (ImGui::RadioButton("Scramble", playbackScramble)) {
+            playbackScramble = true;
+            playbackStep = 0;
+        }
+        if (playbackScramble && !canScramblePlayback) {
+            ImGui::TextDisabled("No scramble-step history in this map. Generate with Start mixed disabled to record scramble steps.");
+        }
+
+        const auto& activeMoves = playbackScramble ? g.scrambleMoves : g.solutionMoves;
+        const int maxStep = static_cast<int>(activeMoves.size());
         playbackStep = std::clamp(playbackStep, 0, maxStep);
-        if (solutionMoves.empty()) {
-            ImGui::TextDisabled("No solution path recorded.");
+        if (activeMoves.empty()) {
+            ImGui::TextDisabled(playbackScramble ? "No scramble path recorded." : "No solution path recorded.");
         }
         else {
             ImGui::Separator();
-            ImGui::Text("Solution step: %d / %d", playbackStep, maxStep);
+            ImGui::Text("%s step: %d / %d", playbackScramble ? "Scramble" : "Solution", playbackStep, maxStep);
             bool canPrev = playbackStep > 0;
             bool canNext = playbackStep < maxStep;
             if (!canPrev) ImGui::BeginDisabled();
@@ -383,14 +402,14 @@ namespace ws {
                 playbackStep = stepInput;
             }
             if (playbackStep > 0 && playbackStep <= maxStep) {
-                const auto& lastMove = solutionMoves[playbackStep - 1];
+                const auto& lastMove = activeMoves[playbackStep - 1];
                 ImGui::Text("Move %d: %d -> %d (amount %d)", playbackStep, lastMove.from + 1, lastMove.to + 1, lastMove.amount);
             }
         }
 
-        State viewState = baseState;
+        State viewState = (playbackScramble && canScramblePlayback) ? g.scrambleStart : baseState;
         for (int i = 0; i < playbackStep && i < maxStep; ++i) {
-            viewState.apply(solutionMoves[i]);
+            viewState.apply(activeMoves[i]);
         }
         const auto& s = viewState;
 

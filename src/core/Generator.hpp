@@ -22,10 +22,12 @@ namespace ws {
 
     struct Generated {
         State state;
+        State scrambleStart;
         int mixCount{ 0 };
         int minMoves{ -1 };
         double diffScore{ 0.0 };
         std::string diffLabel;
+        std::vector<Move> scrambleMoves;
         std::vector<Move> solutionMoves;
         SolveResult::DifficultyBreakdown difficulty;
     };
@@ -52,7 +54,7 @@ namespace ws {
         Params p; GenOptions opt; RNG rng; std::optional<State> base;
 
         State createStartFromInitial(const InitialDistribution* initial);
-        void scramble(State& s, int& outMix);
+        void scramble(State& s, int& outMix, std::vector<Move>* outSteps = nullptr);
         bool placeGimmicksRespecting(const State& sIn, State& out);
         State createRandomMixed();  // NEW
         State createRandomMixedFromHeights(const State& baseTpl); // NEW
