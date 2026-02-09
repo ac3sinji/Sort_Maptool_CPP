@@ -168,10 +168,6 @@ namespace ws {
                 State tplCopy = tpl;
                 int count = NtoGenerate;
                 bool useTemplateNow = useTemplate && sumH == expected;
-                if (useTemplateNow) {
-                    // 템플릿 생성은 병 높이/기믹을 기준으로 색상을 다시 섞어 배치한다.
-                    optCopy.startMixed = true;
-                }
                 setStatus("");
 
                 if (generationThread.joinable()) generationThread.join();
@@ -212,8 +208,6 @@ namespace ws {
         if (ImGui::Button("Generate with Auto Template")) {
             Params pCopy = p;
             GenOptions optCopy = opt;
-            // 자동 템플릿은 매번 색 배치를 새로 섞어서 생성한다.
-            optCopy.startMixed = true;
             int cloth = clothCount;
             int vine = vineCount;
             int bush = bushCount;
