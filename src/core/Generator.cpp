@@ -170,41 +170,13 @@ namespace ws {
             return createRandomMixedFromHeights(*base);
         }
 
-        // 템플릿 + startMixed OFF => 템플릿의 높이/기믹/숨김은 유지하되,
-        // 색은 생성 파라미터(numColors*capacity)에 맞게 다시 채운다.
-        // 템플릿 편집기의 기본 페인트 색(1번)으로만 채워진 상태를 그대로 쓰면
-        // 모든 슬롯이 1번으로 보일 수 있으므로, 여기서 색 분포를 보정한다.
+        // 템플릿 + startMixed OFF => 시작은 정렬(goal) 상태로 고정한다.
+        // 즉, 기본적으로 "병 번호 == 색 번호" 배치에서 시작하고
+        // scramble step을 진행할수록 섞이는 과정을 재생한다.
         if (base && !opt.startMixed && !initial) {
-            State st; st.p = p; st.B.resize(p.numBottles);
-            auto heights = computeHeightsFromTemplate(*base);
-
-            for (size_t i = 0; i < st.B.size(); ++i) {
-                st.B[i].capacity = p.capacity;
-                if (i < base->B.size()) {
-                    st.B[i].gimmick = base->B[i].gimmick;
-                }
-            }
-
-            std::vector<Color> bag;
-            bag.reserve((size_t)p.numColors * (size_t)p.capacity);
-            for (Color c = 1; c <= p.numColors; ++c) {
-                for (int k = 0; k < p.capacity; ++k) bag.push_back(c);
-            }
-            for (size_t i = 0; i < bag.size(); ++i) {
-                size_t j = (size_t)rng.irange((int)i, (int)bag.size() - 1);
-                std::swap(bag[i], bag[j]);
-            }
-
-            size_t pos = 0;
-            for (int i = 0; i < p.numBottles; ++i) {
-                int h = (i < (int)heights.size()) ? heights[i] : 0;
-                h = std::clamp(h, 0, p.capacity);
-                for (int k = 0; k < h && pos < bag.size(); ++k, ++pos) {
-                    st.B[i].slots.push_back(Slot{ bag[pos],false });
-                }
-            }
-
+            State st = State::goal(p);
             for (size_t i = 0; i < st.B.size() && i < base->B.size(); ++i) {
+                st.B[i].gimmick = base->B[i].gimmick;
                 const auto& src = base->B[i].slots;
                 auto& dst = st.B[i].slots;
                 for (size_t k = 0; k < dst.size() && k < src.size(); ++k) {
@@ -279,16 +251,20 @@ namespace ws {
     std::optional<Generated> Generator::makeOne(const InitialDistribution* initial) {
         for (int tries = 0; tries < opt.gimmickPlacementTries; ++tries) {
             State s = createStartFromInitial(initial);
-            State scrambleStart = s;
+            State scrambleStart;
             int mix = 0;
             std::vector<Move> scrambleMoves;
 
-            // NEW: startMixed면 별도의 scramble 불필요
+            // startMixed OFF: 정렬 시작점에서 scramble 과정을 기록한 뒤 solve
             if (!opt.startMixed) {
+                scrambleStart = s;
                 scramble(s, mix, &scrambleMoves);
             }
+            // startMixed ON: 이미 랜덤 섞임 시작점에서 바로 solve
             else {
                 mix = s.p.numColors * s.p.capacity; // 대충 섞임 강도 표기로 사용
+                scrambleMoves.clear();
+                scrambleStart = State{}; // scramble playback 비활성화를 명시
             }
 
             if (!hasAnyMove(s)) {
