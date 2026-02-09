@@ -171,7 +171,59 @@ namespace ws {
         }
 
         State st = State::goal(p);
-        if (base) { st = *base; }
+        if (base) {
+            st = *base;
+
+            // 템플릿 슬롯 색이 placeholder(예: 모두 1)일 때도 색 분포는 Colors*Capacity 규칙을 맞춰 보정.
+            // 사용자가 이미 정상 분포를 지정한 경우에는 그대로 유지한다.
+            std::vector<int> remaining(p.numColors + 1, p.capacity);
+            bool needsRebalance = false;
+            for (auto& bottle : st.B) {
+                for (auto& slot : bottle.slots) {
+                    Color c = slot.c;
+                    if (c < 1 || c > p.numColors) {
+                        slot.c = 0;
+                        needsRebalance = true;
+                        continue;
+                    }
+                    if (remaining[c] > 0) {
+                        --remaining[c];
+                    }
+                    else {
+                        slot.c = 0;
+                        needsRebalance = true;
+                    }
+                }
+            }
+
+            if (!needsRebalance) {
+                for (Color c = 1; c <= p.numColors; ++c) {
+                    if (remaining[c] != 0) {
+                        needsRebalance = true;
+                        break;
+                    }
+                }
+            }
+
+            if (needsRebalance) {
+                std::vector<Color> bag;
+                for (Color c = 1; c <= p.numColors; ++c) {
+                    for (int k = 0; k < remaining[c]; ++k) bag.push_back(c);
+                }
+                for (size_t i = 0; i < bag.size(); ++i) {
+                    size_t j = (size_t)rng.irange((int)i, (int)bag.size() - 1);
+                    std::swap(bag[i], bag[j]);
+                }
+
+                size_t pos = 0;
+                for (auto& bottle : st.B) {
+                    for (auto& slot : bottle.slots) {
+                        if (slot.c != 0) continue;
+                        if (pos < bag.size()) slot.c = bag[pos++];
+                    }
+                }
+            }
+        }
         else {
             for (auto& b : st.B) { b.gimmick = {}; b.slots.clear(); }
             for (int c = 1; c <= p.numColors && c <= p.numBottles; ++c) {
