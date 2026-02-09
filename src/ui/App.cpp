@@ -361,10 +361,6 @@ namespace ws {
         ImGui::Text("  Total: %.1f", g.difficulty.totalScore);
 
         bool canScramblePlayback = !g.scrambleMoves.empty() && !g.scrambleStart.B.empty();
-        if (!canScramblePlayback && playbackScramble) {
-            playbackScramble = false;
-            playbackStep = 0;
-        }
 
         ImGui::Separator();
         ImGui::Text("Playback mode:");
@@ -373,14 +369,12 @@ namespace ws {
             playbackStep = 0;
         }
         ImGui::SameLine();
-        if (!canScramblePlayback) ImGui::BeginDisabled();
         if (ImGui::RadioButton("Scramble", playbackScramble)) {
             playbackScramble = true;
             playbackStep = 0;
         }
-        if (!canScramblePlayback) ImGui::EndDisabled();
-        if (!canScramblePlayback) {
-            ImGui::TextDisabled("Scramble steps are available for maps generated with Start mixed disabled.");
+        if (playbackScramble && !canScramblePlayback) {
+            ImGui::TextDisabled("No scramble-step history in this map. Generate with Start mixed disabled to record scramble steps.");
         }
 
         const auto& activeMoves = playbackScramble ? g.scrambleMoves : g.solutionMoves;
