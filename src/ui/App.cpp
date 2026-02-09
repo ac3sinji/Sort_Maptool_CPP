@@ -126,11 +126,13 @@ namespace ws {
         if (ImGui::InputScalar("Generator seed (random heights)", ImGuiDataType_U64, &seedValue)) {
             opt.seed = seedValue;
         }
-        ImGui::SameLine();
-        if (ImGui::Button("Reseed")) {
+        if (ImGui::Button("Reseed generator")) {
             auto now = std::chrono::high_resolution_clock::now().time_since_epoch().count();
             opt.seed = static_cast<uint64_t>(now) ^ static_cast<uint64_t>(SDL_GetTicks64());
+            setStatus("Generator seed changed. Generate again to see a new random sequence.");
         }
+        ImGui::SameLine();
+        ImGui::TextDisabled("(seed refresh)");
         ImGui::Separator();
         ImGui::Text("Start State");
         ImGui::Checkbox("Start mixed (random deal)", &opt.startMixed);
