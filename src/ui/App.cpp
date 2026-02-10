@@ -532,8 +532,11 @@ namespace ws {
                     std::mutex localMutex;
                     std::atomic<int> duplicateCount{ 0 };
                     std::atomic<int> globalAttempts{ 0 };
+                    std::atomic<int> templateBuildFailures{ 0 };
                     std::atomic<int> failedAttempts{ 0 };
                     const int maxAttempts = std::max(count * 40, 150);
+                    std::string firstTemplateFailureReason;
+                    std::string firstGenerationFailureReason;
 
                     auto chunks = splitWorkEvenly(count, workerCount);
                     std::vector<std::thread> workers;
@@ -554,7 +557,10 @@ namespace ws {
                                 if (attemptNow > maxAttempts) break;
                                 if (attemptNow % 25 == 0) {
                                     std::string progress = "Auto template in progress: attempts=" + std::to_string(attemptNow) +
-                                        ", completed=" + std::to_string(generationCompleted.load()) + "/" + std::to_string(count);
+                                        ", completed=" + std::to_string(generationCompleted.load()) + "/" + std::to_string(count) +
+                                        ", template_failures=" + std::to_string(templateBuildFailures.load()) +
+                                        ", generation_failures=" + std::to_string(failedAttempts.load()) +
+                                        ", duplicates=" + std::to_string(duplicateCount.load());
                                     setStatus(progress);
                                     appendGenerationLog(progress);
                                 }
@@ -562,7 +568,11 @@ namespace ws {
                                 std::string reason;
                                 auto tplOpt = localGen.buildRandomTemplate(cloth, vine, bush, questions, questionMaxPerBottle, &reason);
                                 if (!tplOpt) {
+                                    templateBuildFailures.fetch_add(1);
                                     std::lock_guard<std::mutex> lock(localMutex);
+                                    if (firstTemplateFailureReason.empty() && !reason.empty()) {
+                                        firstTemplateFailureReason = reason;
+                                    }
                                     if (status.empty()) {
                                         status = reason.empty() ? "Failed to build template." : reason;
                                     }
@@ -574,6 +584,9 @@ namespace ws {
                                 if (!g) {
                                     failedAttempts.fetch_add(1);
                                     std::lock_guard<std::mutex> lock(localMutex);
+                                    if (firstGenerationFailureReason.empty() && !reason.empty()) {
+                                        firstGenerationFailureReason = reason;
+                                    }
                                     if (status.empty() && !reason.empty()) {
                                         status = reason;
                                     }
@@ -608,8 +621,11 @@ namespace ws {
                     appendGenerationLog(
                         "Auto template generation finished: generated=" + std::to_string((int)local.size()) + "/" + std::to_string(count) +
                         ", attempts=" + std::to_string(globalAttempts.load()) +
+                        ", template_failures=" + std::to_string(templateBuildFailures.load()) +
                         ", failures=" + std::to_string(failedAttempts.load()) +
                         ", duplicates=" + std::to_string(duplicateCount.load()) +
+                        (firstTemplateFailureReason.empty() ? "" : ", first_template_failure=\"" + firstTemplateFailureReason + "\"") +
+                        (firstGenerationFailureReason.empty() ? "" : ", first_generation_failure=\"" + firstGenerationFailureReason + "\"") +
                         (status.empty() ? "" : ", status=\"" + status + "\"")
                     );
                     const std::string avgMinutesLog = buildAverageMinutesLog(generationStart, static_cast<int>(local.size()));
