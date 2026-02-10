@@ -42,6 +42,9 @@ namespace ws {
             if (t == 0) return 0;
             int cnt = 0;
             for (int i = static_cast<int>(slots.size()) - 1; i >= 0; --i) {
+                // Hidden slots are not "opened" yet, so they must not be moved
+                // as part of the same-color chunk beneath the top revealed slot.
+                if (slots[i].hidden) break;
                 if (slots[i].c == t) ++cnt; else break;
             }
             return cnt;
