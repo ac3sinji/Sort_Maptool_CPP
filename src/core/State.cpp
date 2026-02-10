@@ -106,7 +106,32 @@ namespace ws {
     }
 
     bool State::isSolved() const {
-        for (const auto& b : B) { if (!b.slots.empty() && !b.isMonoFull()) return false; }
+        for (const auto& b : B) {
+            if (!b.slots.empty() && !b.isMonoFull()) return false;
+            for (const auto& s : b.slots) {
+                if (s.hidden) return false;
+            }
+        }
+
+        // Perfect clear policy: all gimmick locks must be released.
+        std::array<bool, 21> colorCompleted{}; // colors 1..20
+        colorCompleted.fill(false);
+        for (const auto& b : B) {
+            if (b.isMonoFull()) colorCompleted[b.slots[0].c] = true;
+        }
+
+        for (size_t i = 0; i < B.size(); ++i) {
+            const auto& g = B[i].gimmick;
+            if (g.kind == StackGimmickKind::Cloth) {
+                if (!(g.clothTarget >= 1 && g.clothTarget <= 20 && colorCompleted[g.clothTarget])) return false;
+            }
+            else if (g.kind == StackGimmickKind::Bush) {
+                bool leftOk = (i > 0 && B[i - 1].isMonoFull());
+                bool rightOk = (i + 1 < B.size() && B[i + 1].isMonoFull());
+                if (!(leftOk || rightOk)) return false;
+            }
+        }
+
         return true;
     }
 
