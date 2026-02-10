@@ -84,7 +84,7 @@ namespace ws {
         ImGui::Begin("Controls");
         ImGui::Text("Params");
         bool pChanged = false;
-        pChanged |= InputIntClamped("Colors", &p.numColors, 1, 18);
+        pChanged |= InputIntClamped("Colors (max 9)", &p.numColors, 1, 9);
         pChanged |= InputIntClamped("Bottles", &p.numBottles, 3, 30);
         pChanged |= InputIntClamped("Capacity", &p.capacity, 3, 50);
         ImGui::Separator();

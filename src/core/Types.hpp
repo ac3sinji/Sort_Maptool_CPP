@@ -58,7 +58,7 @@ namespace ws {
     struct Move { int from{ -1 }; int to{ -1 }; int amount{ 0 }; }; // amount = cells moved
 
     struct Params {
-        int numColors{ 6 };     // 1..18 (your request: up to 18)
+        int numColors{ 6 };     // 1..9 (UI clamp)
         int numBottles{ 8 };    // total stacks
         int capacity{ 4 };      // 3..50
     };
