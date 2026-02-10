@@ -178,18 +178,43 @@ namespace ws {
         InputIntClamped("Question max per bottle", &questionMaxPerBottle, 0, questionPerBottleNaturalMax);
         int filledSlots = std::max(0, p.numColors * p.capacity);
         InputIntClamped("Question count", &questionCount, 0, filledSlots);
-        int globalQuestionCapacity = 0;
-        for (const auto& b : tpl.B) {
-            int perBottleCapacity = std::max(0, (int)b.slots.size() - 1);
-            if (questionMaxPerBottle > 0) {
-                perBottleCapacity = std::min(perBottleCapacity, questionMaxPerBottle);
+        auto calcQuestionCapacity = [&](const State& s) {
+            int capacity = 0;
+            for (const auto& b : s.B) {
+                int perBottleCapacity = std::max(0, (int)b.slots.size() - 1);
+                if (questionMaxPerBottle > 0) {
+                    perBottleCapacity = std::min(perBottleCapacity, questionMaxPerBottle);
+                }
+                capacity += perBottleCapacity;
             }
-            globalQuestionCapacity += perBottleCapacity;
+            return capacity;
+            };
+
+        int globalQuestionCapacity = calcQuestionCapacity(tpl);
+        bool usingAutoTemplatePreview = false;
+        std::string autoTemplatePreviewReason;
+        if (opt.randomizeHeights) {
+            Generator previewGen(p, opt);
+            auto previewTpl = previewGen.buildRandomTemplate(clothCount, vineCount, bushCount, 0, questionMaxPerBottle, &autoTemplatePreviewReason);
+            if (previewTpl) {
+                globalQuestionCapacity = calcQuestionCapacity(*previewTpl);
+                usingAutoTemplatePreview = true;
+            }
         }
         const int questionCountRecommendedMax = std::max(0, globalQuestionCapacity);
         ImGui::TextDisabled("Question count allowed now: 0 ~ %d", questionCountRecommendedMax);
-        if (questionCountRecommendedMax == 0) {
+        if (usingAutoTemplatePreview) {
+            ImGui::TextDisabled("Based on auto-template preview (current seed/settings), not the template editor heights.");
+        }
+        else if (opt.randomizeHeights && !autoTemplatePreviewReason.empty()) {
+            ImGui::TextDisabled("Auto-template preview unavailable: %s", autoTemplatePreviewReason.c_str());
+        }
+
+        if (questionCountRecommendedMax == 0 && !usingAutoTemplatePreview) {
             ImGui::TextDisabled("Increase template bottle heights first (each bottle needs at least 2 slots to place '?').");
+        }
+        else if (questionCountRecommendedMax == 0 && usingAutoTemplatePreview) {
+            ImGui::TextDisabled("Auto template preview has no hidden-slot capacity with current settings.");
         }
         ImGui::Text("Question capacity: per bottle <= min(slots-1, %d), map total <= %d", questionMaxPerBottle, globalQuestionCapacity);
         if (questionCount > globalQuestionCapacity) {
