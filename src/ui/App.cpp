@@ -13,6 +13,21 @@
 
 namespace ws {
 
+    static int defaultWorkerMax() {
+        const unsigned hw = std::thread::hardware_concurrency();
+        if (hw == 0) return 8;
+        return std::max(1u, std::min(hw, 16u));
+    }
+
+    static std::vector<int> splitWorkEvenly(int total, int workers) {
+        workers = std::max(1, workers);
+        std::vector<int> chunks(workers, total / workers);
+        for (int i = 0; i < total % workers; ++i) {
+            ++chunks[i];
+        }
+        return chunks;
+    }
+
     static std::string makeStateKey(const State& s) {
         std::string key;
         key.reserve(2048);
@@ -42,6 +57,8 @@ namespace ws {
     }
 
     AppUI::AppUI() :p{ 6,8,4 }, opt{} {
+        workerThreadMax = defaultWorkerMax();
+        workerThreads = std::clamp(workerThreads, 1, workerThreadMax);
         tpl.p = p;
         tpl.B.resize(p.numBottles);
         for (auto& b : tpl.B) b.capacity = p.capacity;
@@ -143,6 +160,8 @@ namespace ws {
         }
         InputIntClamped("Mix max", &opt.mixMax, opt.mixMin, 10000, 5, 20);
         InputIntClamped("Solve ms", &opt.solveTimeMs, 200, 100000, 10, 100);
+        InputIntClamped("Worker threads", &workerThreads, 1, workerThreadMax);
+        ImGui::TextDisabled("Parallel workers use seed + worker index. Max: %d", workerThreadMax);
         InputIntClamped("Count (N)", &NtoGenerate, 1, 50);
         InputIntClamped("Auto template maps", &autoCount, 1, 50);
         ImGui::Separator();
@@ -231,39 +250,73 @@ namespace ws {
                     existingKeys.push_back(makeStateKey(item.state));
                 }
 
-                generationThread = std::thread([this, pCopy, optCopy, tplCopy, count, useTemplateNow, existingKeys = std::move(existingKeys)]() mutable {
-                    Generator localGen(pCopy, optCopy);
-                    if (useTemplateNow) {
-                        localGen.setBase(tplCopy);
-                    }
+                int workerCount = std::min(std::max(workerThreads, 1), std::max(1, count));
+                generationThread = std::thread([this, pCopy, optCopy, tplCopy, count, useTemplateNow, workerCount, existingKeys = std::move(existingKeys)]() mutable {
                     std::vector<Generated> local;
                     local.reserve(count);
                     std::unordered_set<std::string> seen(existingKeys.begin(), existingKeys.end());
                     seen.reserve(existingKeys.size() + (size_t)count * 2);
 
-                    int duplicateCount = 0;
-                    int attempts = 0;
+                    std::mutex localMutex;
+                    std::atomic<int> duplicateCount{ 0 };
+                    std::atomic<int> globalAttempts{ 0 };
                     const int maxAttempts = std::max(count * 30, 100);
-                    while ((int)local.size() < count && attempts < maxAttempts) {
-                        ++attempts;
-                        auto g = localGen.makeOne(nullptr);
-                        if (!g) continue;
 
-                        std::string key = makeStateKey(g->state);
-                        if (!seen.insert(key).second) {
-                            ++duplicateCount;
-                            continue;
-                        }
+                    auto chunks = splitWorkEvenly(count, workerCount);
+                    std::vector<std::thread> workers;
+                    workers.reserve(chunks.size());
 
-                        local.push_back(std::move(*g));
-                        generationCompleted.store((int)local.size());
+                    for (size_t workerIdx = 0; workerIdx < chunks.size(); ++workerIdx) {
+                        const int target = chunks[workerIdx];
+                        if (target <= 0) continue;
+
+                        GenOptions workerOpt = optCopy;
+                        workerOpt.seed = optCopy.seed + static_cast<uint64_t>(workerIdx);
+
+                        workers.emplace_back([&, workerOpt, target]() mutable {
+                            Generator localGen(pCopy, workerOpt);
+                            if (useTemplateNow) {
+                                localGen.setBase(tplCopy);
+                            }
+
+                            int produced = 0;
+                            while (produced < target) {
+                                int attemptNow = ++globalAttempts;
+                                if (attemptNow > maxAttempts) break;
+
+                                auto g = localGen.makeOne(nullptr);
+                                if (!g) continue;
+
+                                std::string key = makeStateKey(g->state);
+                                bool accepted = false;
+                                {
+                                    std::lock_guard<std::mutex> lock(localMutex);
+                                    if (seen.insert(key).second) {
+                                        local.push_back(std::move(*g));
+                                        accepted = true;
+                                    }
+                                }
+
+                                if (accepted) {
+                                    ++produced;
+                                    generationCompleted.fetch_add(1);
+                                }
+                                else {
+                                    duplicateCount.fetch_add(1);
+                                }
+                            }
+                        });
                     }
 
-                    if (duplicateCount > 0 && (int)local.size() < count) {
+                    for (auto& worker : workers) {
+                        if (worker.joinable()) worker.join();
+                    }
+
+                    if (duplicateCount.load() > 0 && (int)local.size() < count) {
                         setStatus("중복 맵 감지로 재생성 시도 후 " + std::to_string((int)local.size()) + "/" + std::to_string(count) + "개 생성했습니다.");
                     }
-                    else if (duplicateCount > 0) {
-                        setStatus("중복 맵 " + std::to_string(duplicateCount) + "개를 재생성으로 대체했습니다.");
+                    else if (duplicateCount.load() > 0) {
+                        setStatus("중복 맵 " + std::to_string(duplicateCount.load()) + "개를 재생성으로 대체했습니다.");
                     }
 
                     {
@@ -312,8 +365,8 @@ namespace ws {
                     existingKeys.push_back(makeStateKey(item.state));
                 }
 
-                generationThread = std::thread([this, pCopy, optCopy, cloth, vine, bush, questions, count, questionMaxPerBottle = questionMaxPerBottle, existingKeys = std::move(existingKeys)]() mutable {
-                    Generator localGen(pCopy, optCopy);
+                int workerCount = std::min(std::max(workerThreads, 1), std::max(1, count));
+                generationThread = std::thread([this, pCopy, optCopy, cloth, vine, bush, questions, count, questionMaxPerBottle = questionMaxPerBottle, workerCount, existingKeys = std::move(existingKeys)]() mutable {
                     std::vector<Generated> local;
                     std::string status;
                     local.reserve(count);
@@ -321,33 +374,72 @@ namespace ws {
                     std::unordered_set<std::string> seen(existingKeys.begin(), existingKeys.end());
                     seen.reserve(existingKeys.size() + (size_t)count * 2);
 
-                    int duplicateCount = 0;
-                    int attempts = 0;
+                    std::mutex localMutex;
+                    std::atomic<int> duplicateCount{ 0 };
+                    std::atomic<int> globalAttempts{ 0 };
                     const int maxAttempts = std::max(count * 40, 150);
-                    while ((int)local.size() < count && attempts < maxAttempts) {
-                        ++attempts;
-                        std::string reason;
-                        auto tplOpt = localGen.buildRandomTemplate(cloth, vine, bush, questions, questionMaxPerBottle, &reason);
-                        if (!tplOpt) {
-                            status = reason.empty() ? "Failed to build template." : reason;
-                            break;
-                        }
 
-                        localGen.setBase(*tplOpt);
-                        auto g = localGen.makeOne(nullptr, &reason);
-                        if (!g) {
-                            status = reason.empty() ? "Generation failed for a map." : reason;
-                            continue;
-                        }
+                    auto chunks = splitWorkEvenly(count, workerCount);
+                    std::vector<std::thread> workers;
+                    workers.reserve(chunks.size());
 
-                        std::string key = makeStateKey(g->state);
-                        if (!seen.insert(key).second) {
-                            ++duplicateCount;
-                            continue;
-                        }
+                    for (size_t workerIdx = 0; workerIdx < chunks.size(); ++workerIdx) {
+                        const int target = chunks[workerIdx];
+                        if (target <= 0) continue;
 
-                        local.push_back(std::move(*g));
-                        generationCompleted.store((int)local.size());
+                        GenOptions workerOpt = optCopy;
+                        workerOpt.seed = optCopy.seed + static_cast<uint64_t>(workerIdx);
+
+                        workers.emplace_back([&, workerOpt, target]() mutable {
+                            Generator localGen(pCopy, workerOpt);
+                            int produced = 0;
+                            while (produced < target) {
+                                int attemptNow = ++globalAttempts;
+                                if (attemptNow > maxAttempts) break;
+
+                                std::string reason;
+                                auto tplOpt = localGen.buildRandomTemplate(cloth, vine, bush, questions, questionMaxPerBottle, &reason);
+                                if (!tplOpt) {
+                                    std::lock_guard<std::mutex> lock(localMutex);
+                                    if (status.empty()) {
+                                        status = reason.empty() ? "Failed to build template." : reason;
+                                    }
+                                    break;
+                                }
+
+                                localGen.setBase(*tplOpt);
+                                auto g = localGen.makeOne(nullptr, &reason);
+                                if (!g) {
+                                    std::lock_guard<std::mutex> lock(localMutex);
+                                    if (status.empty() && !reason.empty()) {
+                                        status = reason;
+                                    }
+                                    continue;
+                                }
+
+                                std::string key = makeStateKey(g->state);
+                                bool accepted = false;
+                                {
+                                    std::lock_guard<std::mutex> lock(localMutex);
+                                    if (seen.insert(key).second) {
+                                        local.push_back(std::move(*g));
+                                        accepted = true;
+                                    }
+                                }
+
+                                if (accepted) {
+                                    ++produced;
+                                    generationCompleted.fetch_add(1);
+                                }
+                                else {
+                                    duplicateCount.fetch_add(1);
+                                }
+                            }
+                        });
+                    }
+
+                    for (auto& worker : workers) {
+                        if (worker.joinable()) worker.join();
                     }
 
                     {
@@ -361,8 +453,8 @@ namespace ws {
                         if ((int)local.size() < count) {
                             status = "중복/생성 실패로 " + std::to_string((int)local.size()) + "/" + std::to_string(count) + "개만 생성했습니다.";
                         }
-                        else if (duplicateCount > 0) {
-                            status = "중복 맵 " + std::to_string(duplicateCount) + "개를 재생성으로 대체했습니다.";
+                        else if (duplicateCount.load() > 0) {
+                            status = "중복 맵 " + std::to_string(duplicateCount.load()) + "개를 재생성으로 대체했습니다.";
                         }
                         else {
                             status = std::string("Auto template generation complete (heights ") +
