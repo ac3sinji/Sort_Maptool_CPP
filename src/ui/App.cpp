@@ -243,12 +243,12 @@ namespace ws {
                             break;
                         }
                         localGen.setBase(*tplOpt);
-                        auto g = localGen.makeOne(nullptr);
+                        auto g = localGen.makeOne(nullptr, &reason);
                         if (g) {
                             local.push_back(std::move(*g));
                         }
                         else {
-                            status = "Generation failed for a map.";
+                            status = reason.empty() ? "Generation failed for a map." : reason;
                             break;
                         }
                         generationCompleted.fetch_add(1);

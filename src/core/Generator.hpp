@@ -41,7 +41,7 @@ namespace ws {
         Generator(Params p, GenOptions opt);
 
         // Generate one solvable map honoring existing bottle gimmicks in p/B (if provided via setBase)
-        std::optional<Generated> makeOne(const InitialDistribution* initial = nullptr);
+        std::optional<Generated> makeOne(const InitialDistribution* initial = nullptr, std::string* reason = nullptr);
 
         // Build a random template honoring params and requested gimmick counts.
         std::optional<State> buildRandomTemplate(int clothCount, int vineCount, int bushCount,

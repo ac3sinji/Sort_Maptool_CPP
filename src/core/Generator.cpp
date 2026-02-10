@@ -299,7 +299,15 @@ namespace ws {
         return true;
     }
 
-    std::optional<Generated> Generator::makeOne(const InitialDistribution* initial) {
+    std::optional<Generated> Generator::makeOne(const InitialDistribution* initial, std::string* reason) {
+        auto setReason = [&](const std::string& msg) {
+            if (reason) *reason = msg;
+        };
+        if (reason) reason->clear();
+
+        int failedApplyTemplate = 0;
+        int failedNoMove = 0;
+        int failedSolver = 0;
         for (int tries = 0; tries < opt.gimmickPlacementTries; ++tries) {
             State s = createStartFromInitial(initial);
             State scrambleStart;
@@ -312,6 +320,7 @@ namespace ws {
                 scramble(s, mix, &scrambleMoves);
                 applyTemplateHiddenAfterScramble(s);
                 if (!applyTemplateGimmicksAfterScramble(s)) {
+                    ++failedApplyTemplate;
                     continue;
                 }
             }
@@ -323,6 +332,7 @@ namespace ws {
             }
 
             if (!hasAnyMove(s)) {
+                ++failedNoMove;
                 continue;
                 
             }
@@ -337,7 +347,21 @@ namespace ws {
                 g.difficulty = res.difficulty;
                 return g;
             }
+            ++failedSolver;
             // 실패 시 다음 시도
+        }
+
+        if (failedSolver > 0) {
+            setReason("Generator could not find a solvable map within solver time budget.");
+        }
+        else if (failedNoMove > 0) {
+            setReason("Generated state had no valid moves under current gimmick locks.");
+        }
+        else if (failedApplyTemplate > 0) {
+            setReason("Template gimmick constraints became invalid after scramble.");
+        }
+        else {
+            setReason("Generator exhausted retry budget before producing a valid map.");
         }
         return std::nullopt;
     }
