@@ -9,8 +9,37 @@
 #include <cstdint>
 #include <string>
 #include <chrono>
+#include <unordered_set>
 
 namespace ws {
+
+    static std::string makeStateKey(const State& s) {
+        std::string key;
+        key.reserve(2048);
+        key += std::to_string(s.p.numColors);
+        key.push_back('|');
+        key += std::to_string(s.p.numBottles);
+        key.push_back('|');
+        key += std::to_string(s.p.capacity);
+
+        for (const auto& b : s.B) {
+            key += "#";
+            key += std::to_string((int)b.gimmick.kind);
+            key.push_back(':');
+            key += std::to_string((int)b.gimmick.clothTarget);
+            key.push_back(':');
+            key += std::to_string(b.capacity);
+            key.push_back(':');
+
+            for (const auto& slot : b.slots) {
+                key += std::to_string((int)slot.c);
+                key.push_back(slot.hidden ? '?' : '.');
+                key.push_back(',');
+            }
+            key.push_back(';');
+        }
+        return key;
+    }
 
     AppUI::AppUI() :p{ 6,8,4 }, opt{} {
         tpl.p = p;
@@ -60,9 +89,27 @@ namespace ws {
 
         if (!newly.empty()) {
             bool hadAny = !generated.empty();
+            std::unordered_set<std::string> seen;
+            seen.reserve(generated.size() + newly.size());
+
+            for (const auto& existing : generated) {
+                seen.insert(makeStateKey(existing.state));
+            }
+
+            int duplicateCount = 0;
             for (auto& g : newly) {
+                const std::string key = makeStateKey(g.state);
+                if (!seen.insert(key).second) {
+                    ++duplicateCount;
+                    continue;
+                }
                 generated.push_back(std::move(g));
             }
+
+            if (duplicateCount > 0) {
+                setStatus("중복 맵 " + std::to_string(duplicateCount) + "개를 제외했습니다.");
+            }
+
             if (currentIndex < 0 && !generated.empty()) ensureIndex(0);
             else if (!hadAny && !generated.empty()) ensureIndex(0);
         }
@@ -178,20 +225,47 @@ namespace ws {
                 generationCompleted.store(0);
                 isGenerating.store(true);
 
-                generationThread = std::thread([this, pCopy, optCopy, tplCopy, count, useTemplateNow]() mutable {
+                std::vector<std::string> existingKeys;
+                existingKeys.reserve(generated.size());
+                for (const auto& item : generated) {
+                    existingKeys.push_back(makeStateKey(item.state));
+                }
+
+                generationThread = std::thread([this, pCopy, optCopy, tplCopy, count, useTemplateNow, existingKeys = std::move(existingKeys)]() mutable {
                     Generator localGen(pCopy, optCopy);
                     if (useTemplateNow) {
                         localGen.setBase(tplCopy);
                     }
                     std::vector<Generated> local;
                     local.reserve(count);
-                    for (int i = 0; i < count; ++i) {
+                    std::unordered_set<std::string> seen(existingKeys.begin(), existingKeys.end());
+                    seen.reserve(existingKeys.size() + (size_t)count * 2);
+
+                    int duplicateCount = 0;
+                    int attempts = 0;
+                    const int maxAttempts = std::max(count * 30, 100);
+                    while ((int)local.size() < count && attempts < maxAttempts) {
+                        ++attempts;
                         auto g = localGen.makeOne(nullptr);
-                        if (g) {
-                            local.push_back(std::move(*g));
+                        if (!g) continue;
+
+                        std::string key = makeStateKey(g->state);
+                        if (!seen.insert(key).second) {
+                            ++duplicateCount;
+                            continue;
                         }
-                        generationCompleted.fetch_add(1);
+
+                        local.push_back(std::move(*g));
+                        generationCompleted.store((int)local.size());
                     }
+
+                    if (duplicateCount > 0 && (int)local.size() < count) {
+                        setStatus("중복 맵 감지로 재생성 시도 후 " + std::to_string((int)local.size()) + "/" + std::to_string(count) + "개 생성했습니다.");
+                    }
+                    else if (duplicateCount > 0) {
+                        setStatus("중복 맵 " + std::to_string(duplicateCount) + "개를 재생성으로 대체했습니다.");
+                    }
+
                     {
                         std::lock_guard<std::mutex> lock(pendingMutex);
                         for (auto& item : local) {
@@ -232,38 +306,68 @@ namespace ws {
                 generationCompleted.store(0);
                 isGenerating.store(true);
 
-                generationThread = std::thread([this, pCopy, optCopy, cloth, vine, bush, questions, count, questionMaxPerBottle = questionMaxPerBottle]() mutable {
+                std::vector<std::string> existingKeys;
+                existingKeys.reserve(generated.size());
+                for (const auto& item : generated) {
+                    existingKeys.push_back(makeStateKey(item.state));
+                }
+
+                generationThread = std::thread([this, pCopy, optCopy, cloth, vine, bush, questions, count, questionMaxPerBottle = questionMaxPerBottle, existingKeys = std::move(existingKeys)]() mutable {
                     Generator localGen(pCopy, optCopy);
                     std::vector<Generated> local;
                     std::string status;
                     local.reserve(count);
-                    for (int i = 0; i < count; ++i) {
+
+                    std::unordered_set<std::string> seen(existingKeys.begin(), existingKeys.end());
+                    seen.reserve(existingKeys.size() + (size_t)count * 2);
+
+                    int duplicateCount = 0;
+                    int attempts = 0;
+                    const int maxAttempts = std::max(count * 40, 150);
+                    while ((int)local.size() < count && attempts < maxAttempts) {
+                        ++attempts;
                         std::string reason;
                         auto tplOpt = localGen.buildRandomTemplate(cloth, vine, bush, questions, questionMaxPerBottle, &reason);
                         if (!tplOpt) {
                             status = reason.empty() ? "Failed to build template." : reason;
                             break;
                         }
+
                         localGen.setBase(*tplOpt);
                         auto g = localGen.makeOne(nullptr, &reason);
-                        if (g) {
-                            local.push_back(std::move(*g));
-                        }
-                        else {
+                        if (!g) {
                             status = reason.empty() ? "Generation failed for a map." : reason;
-                            break;
+                            continue;
                         }
-                        generationCompleted.fetch_add(1);
+
+                        std::string key = makeStateKey(g->state);
+                        if (!seen.insert(key).second) {
+                            ++duplicateCount;
+                            continue;
+                        }
+
+                        local.push_back(std::move(*g));
+                        generationCompleted.store((int)local.size());
                     }
+
                     {
                         std::lock_guard<std::mutex> lock(pendingMutex);
                         for (auto& item : local) {
                             pendingGenerated.push_back(std::move(item));
                         }
                     }
+
                     if (status.empty()) {
-                        status = std::string("Auto template generation complete (heights ") +
-                            (optCopy.randomizeHeights ? "randomized" : "fixed") + ").";
+                        if ((int)local.size() < count) {
+                            status = "중복/생성 실패로 " + std::to_string((int)local.size()) + "/" + std::to_string(count) + "개만 생성했습니다.";
+                        }
+                        else if (duplicateCount > 0) {
+                            status = "중복 맵 " + std::to_string(duplicateCount) + "개를 재생성으로 대체했습니다.";
+                        }
+                        else {
+                            status = std::string("Auto template generation complete (heights ") +
+                                (optCopy.randomizeHeights ? "randomized" : "fixed") + ").";
+                        }
                     }
                     setStatus(status);
                     isGenerating.store(false);
