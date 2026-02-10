@@ -215,22 +215,48 @@ namespace ws {
         return st;
     }
 
+    bool Generator::canPourForGeneration(const State& s, int from, int to, int* outAmount) const {
+        if (from == to || from < 0 || to < 0 || from >= (int)s.B.size() || to >= (int)s.B.size()) return false;
+
+        const auto& bf = s.B[from];
+        const auto& bt = s.B[to];
+
+        // Keep structural constraints aligned with gameplay rules.
+        if (bf.gimmick.kind == StackGimmickKind::Vine) return false;
+        if ((bf.gimmick.kind == StackGimmickKind::Cloth && s.locks.clothLocked[from]) ||
+            (bf.gimmick.kind == StackGimmickKind::Bush && s.locks.bushLocked[from])) return false;
+        if ((bt.gimmick.kind == StackGimmickKind::Cloth && s.locks.clothLocked[to]) ||
+            (bt.gimmick.kind == StackGimmickKind::Bush && s.locks.bushLocked[to])) return false;
+
+        if (bf.slots.empty()) return false;
+        if (bt.size() >= bt.capacity) return false;
+
+        Color tcol = bf.topColor();
+        if (tcol == 0) return false;
+
+        // Generation-only relaxation: ignore gameplay color-match check.
+        int mv = std::min(bf.topChunk(), bt.capacity - bt.size());
+        if (mv <= 0) return false;
+        if (outAmount) *outAmount = mv;
+        return true;
+    }
+
     void Generator::scramble(State& s, int& outMix, std::vector<Move>* outSteps) {
-        // Reverse‑move scramble from goal‑like state: apply legal moves that are NOT immediately undoing previous
+        // Reverse‑move scramble from goal‑like state.
+        // Scramble uses generation-specific pour rules, while solver/play keeps State::canPour.
         int target = rng.irange(opt.mixMin, opt.mixMax);
         outMix = 0;
         Move last{ -1,-1,0 };
         if (outSteps) outSteps->clear();
         for (int step = 0; step < target; ++step) {
-            // collect legal moves
             std::vector<Move> mv;
             for (int i = 0; i < (int)s.B.size(); ++i) {
                 for (int j = 0; j < (int)s.B.size(); ++j) {
-                    if (i == j) continue; int amount = 0; if (!s.canPour(i, j, &amount)) continue;
-                    // avoid trivial undo: pouring back the same chunk immediately
-                    if (last.from == j && last.to == i) continue;
-                    // prefer moves that create mixed stacks
-                    mv.push_back(Move{ i,j,amount });
+                    if (i == j) continue;
+                    if (last.from == j && last.to == i) continue; // avoid immediate undo
+                    int amount = 0;
+                    if (!canPourForGeneration(s, i, j, &amount)) continue;
+                    mv.push_back(Move{ i, j, amount });
                 }
             }
             if (mv.empty()) break;
