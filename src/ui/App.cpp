@@ -121,6 +121,18 @@ namespace ws {
         out << line << "\n";
     }
 
+    static std::string buildAverageMinutesLog(std::chrono::steady_clock::time_point startedAt, int generatedCount) {
+        const auto elapsed = std::chrono::steady_clock::now() - startedAt;
+        const double elapsedMinutes = std::chrono::duration<double, std::ratio<60>>(elapsed).count();
+        const double averageMinutes = generatedCount > 0 ? (elapsedMinutes / static_cast<double>(generatedCount)) : 0.0;
+
+        std::ostringstream oss;
+        oss << std::fixed << std::setprecision(3)
+            << "평균 맵 생성 시간: " << averageMinutes << "분/맵"
+            << " (총 " << elapsedMinutes << "분, " << generatedCount << "개 기준)";
+        return oss.str();
+    }
+
     AppUI::AppUI() :p{ 6,8,4 }, opt{} {
         loadGenerationLogFromFile();
         workerThreadMax = defaultWorkerMax();
@@ -348,6 +360,7 @@ namespace ws {
 
                 int workerCount = std::min(std::max(workerThreads, 1), std::max(1, count));
                 generationThread = std::thread([this, pCopy, optCopy, tplCopy, count, useTemplateNow, workerCount, existingKeys = std::move(existingKeys)]() mutable {
+                    const auto generationStart = std::chrono::steady_clock::now();
                     appendGenerationLog("Generate N started: count=" + std::to_string(count) + ", workers=" + std::to_string(workerCount));
                     std::vector<Generated> local;
                     local.reserve(count);
@@ -432,22 +445,27 @@ namespace ws {
                         ", duplicates=" + std::to_string(duplicateCount.load()) +
                         (firstFailureReason.empty() ? "" : ", first_failure=\"" + firstFailureReason + "\"")
                     );
+                    const std::string avgMinutesLog = buildAverageMinutesLog(generationStart, static_cast<int>(local.size()));
+                    appendGenerationLog(avgMinutesLog);
 
+                    std::string finalStatus;
                     if (duplicateCount.load() > 0 && (int)local.size() < count) {
-                        setStatus("중복/실패 재시도로 " + std::to_string((int)local.size()) + "/" + std::to_string(count) +
+                        finalStatus = "중복/실패 재시도로 " + std::to_string((int)local.size()) + "/" + std::to_string(count) +
                             "개 생성 (시도 " + std::to_string(globalAttempts.load()) +
-                            ", 실패 " + std::to_string(failedAttempts.load()) + ").");
+                            ", 실패 " + std::to_string(failedAttempts.load()) + ").";
                     }
                     else if (duplicateCount.load() > 0) {
-                        setStatus("중복 맵 " + std::to_string(duplicateCount.load()) + "개를 재생성으로 대체했습니다.");
+                        finalStatus = "중복 맵 " + std::to_string(duplicateCount.load()) + "개를 재생성으로 대체했습니다.";
                     }
                     else if ((int)local.size() < count) {
-                        std::string msg = "생성 완료: " + std::to_string((int)local.size()) + "/" + std::to_string(count) +
+                        finalStatus = "생성 완료: " + std::to_string((int)local.size()) + "/" + std::to_string(count) +
                             "개 (시도 " + std::to_string(globalAttempts.load()) +
                             ", 실패 " + std::to_string(failedAttempts.load()) + ")";
-                        if (!firstFailureReason.empty()) msg += ". 첫 실패 사유: " + firstFailureReason;
-                        setStatus(msg);
+                        if (!firstFailureReason.empty()) finalStatus += ". 첫 실패 사유: " + firstFailureReason;
                     }
+                    if (!finalStatus.empty()) finalStatus += " | ";
+                    finalStatus += avgMinutesLog;
+                    setStatus(finalStatus);
 
                     {
                         std::lock_guard<std::mutex> lock(pendingMutex);
@@ -497,6 +515,7 @@ namespace ws {
 
                 int workerCount = std::min(std::max(workerThreads, 1), std::max(1, count));
                 generationThread = std::thread([this, pCopy, optCopy, cloth, vine, bush, questions, count, questionMaxPerBottle = questionMaxPerBottle, workerCount, existingKeys = std::move(existingKeys)]() mutable {
+                    const auto generationStart = std::chrono::steady_clock::now();
                     appendGenerationLog("Auto template generation started: count=" + std::to_string(count) +
                         ", workers=" + std::to_string(workerCount) +
                         ", cloth=" + std::to_string(cloth) +
@@ -593,6 +612,8 @@ namespace ws {
                         ", duplicates=" + std::to_string(duplicateCount.load()) +
                         (status.empty() ? "" : ", status=\"" + status + "\"")
                     );
+                    const std::string avgMinutesLog = buildAverageMinutesLog(generationStart, static_cast<int>(local.size()));
+                    appendGenerationLog(avgMinutesLog);
 
                     {
                         std::lock_guard<std::mutex> lock(pendingMutex);
@@ -615,6 +636,8 @@ namespace ws {
                                 (optCopy.randomizeHeights ? "randomized" : "fixed") + ").";
                         }
                     }
+                    if (!status.empty()) status += " | ";
+                    status += avgMinutesLog;
                     setStatus(status);
                     isGenerating.store(false);
                     });
