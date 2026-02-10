@@ -186,6 +186,11 @@ namespace ws {
             }
             globalQuestionCapacity += perBottleCapacity;
         }
+        const int questionCountRecommendedMax = std::max(0, globalQuestionCapacity);
+        ImGui::TextDisabled("Question count allowed now: 0 ~ %d", questionCountRecommendedMax);
+        if (questionCountRecommendedMax == 0) {
+            ImGui::TextDisabled("Increase template bottle heights first (each bottle needs at least 2 slots to place '?').");
+        }
         ImGui::Text("Question capacity: per bottle <= min(slots-1, %d), map total <= %d", questionMaxPerBottle, globalQuestionCapacity);
         if (questionCount > globalQuestionCapacity) {
             ImGui::TextColored(ImVec4(1, 0.4f, 0.4f, 1), "Question count %d exceeds allowed map capacity %d.", questionCount, globalQuestionCapacity);
