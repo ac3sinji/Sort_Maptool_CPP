@@ -55,7 +55,7 @@ namespace ws {
 
         State createStartFromInitial(const InitialDistribution* initial);
         void scramble(State& s, int& outMix, std::vector<Move>* outSteps = nullptr);
-        bool canPourForGeneration(const State& s, int from, int to, int* outAmount) const;
+        bool canPourForGeneration(const State& s, int from, int to, int amount) const;
         bool placeGimmicksRespecting(const State& sIn, State& out);
         State createRandomMixed();  // NEW
         State createRandomMixedFromHeights(const State& baseTpl); // NEW
