@@ -15,6 +15,7 @@
 #include <deque>
 #include <cctype>
 #include <sstream>
+#include <cstdlib>
 
 namespace ws {
 
@@ -68,6 +69,34 @@ namespace ws {
     static std::string toLowerCopy(std::string text) {
         for (char& ch : text) ch = static_cast<char>(std::tolower(static_cast<unsigned char>(ch)));
         return text;
+    }
+
+    static std::vector<std::string> buildKoreanFontCandidates() {
+        std::vector<std::string> candidates = {
+            "C:/Windows/Fonts/malgun.ttf",
+            "C:/Windows/Fonts/malgunbd.ttf",
+            "C:/Windows/Fonts/NanumGothic.ttf",
+            "C:/Windows/Fonts/NanumGothicBold.ttf",
+            "C:/Windows/Fonts/arialuni.ttf"
+        };
+
+        if (const char* localAppData = std::getenv("LOCALAPPDATA")) {
+            std::filesystem::path userFonts(localAppData);
+            userFonts /= "Microsoft/Windows/Fonts";
+            candidates.push_back((userFonts / "NanumGothic.ttf").string());
+            candidates.push_back((userFonts / "NanumGothicBold.ttf").string());
+            candidates.push_back((userFonts / "malgun.ttf").string());
+        }
+
+        if (const char* userProfile = std::getenv("USERPROFILE")) {
+            std::filesystem::path userFonts(userProfile);
+            userFonts /= "AppData/Local/Microsoft/Windows/Fonts";
+            candidates.push_back((userFonts / "NanumGothic.ttf").string());
+            candidates.push_back((userFonts / "NanumGothicBold.ttf").string());
+            candidates.push_back((userFonts / "malgun.ttf").string());
+        }
+
+        return candidates;
     }
 
     static bool isProblemLogLine(const std::string& line) {
@@ -1071,25 +1100,18 @@ namespace ws {
         ImGuiIO& io = ImGui::GetIO(); (void)io;
         ImGui::StyleColorsDark();
 
-        // ▼▼ 한글 폰트 강제 로드: 실패하면 다음 후보로, 끝까지 실패하면 기본폰트
-        const char* font_candidates[] = {
-            "C:/Windows/Fonts/malgun.ttf",       // 맑은 고딕
-            "C:/Windows/Fonts/malgunbd.ttf",
-            "C:/Users/pivot/AppData/Local/Microsoft/Windows/Fonts/NanumGothic.ttf",  // 나눔고딕 (설치되어 있으면)
-            "C:/Windows/Fonts/arialuni.ttf"      // Arial Unicode MS (있을 때만)
-        };
+        // 한글 폰트 로드: 사용자/시스템 경로를 폭넓게 시도합니다.
+        const std::vector<std::string> fontCandidates = buildKoreanFontCandidates();
         ImFont* korean = nullptr;
-        for (const char* path : font_candidates) {
-            // 존재 여부와 무관하게 바로 시도(일부 PC에서 exists()가 false를 반환하는 경우가 있어요)
-            korean = io.Fonts->AddFontFromFileTTF(path, 18.0f, nullptr, io.Fonts->GetGlyphRangesKorean());
+        for (const std::string& path : fontCandidates) {
+            korean = io.Fonts->AddFontFromFileTTF(path.c_str(), 18.0f, nullptr, io.Fonts->GetGlyphRangesKorean());
             if (korean) { io.FontDefault = korean; break; }
         }
         if (!korean) {
-            // 최후 수단: 기본 폰트(라틴 전용). 이 경우 한글은 깨져 보입니다.
+            // 최후 수단: 기본 폰트(라틴 위주). 이 경우 한글은 깨져 보일 수 있습니다.
             korean = io.Fonts->AddFontDefault();
             io.FontDefault = korean;
-            // 디버그 확인용(콘솔에 출력)
-            printf("[ImGui] Korean font NOT found, using default font. Install 'Malgun Gothic' or 'NanumGothic'.\n");
+            printf("[ImGui] Korean font NOT found, using default font. Tried common system/user font paths.\n");
         }
 
         // (옵션) 즉시 폰트 아틀라스 빌드 — 백엔드 init 전에 하면 자동으로 반영됩니다.
