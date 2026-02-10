@@ -11,6 +11,17 @@ namespace ws {
 
     struct Node { State s; int g{ 0 }; };
 
+    static State normalizeForSolve(const State& input) {
+        State normalized = input;
+        for (auto& bottle : normalized.B) {
+            for (auto& slot : bottle.slots) {
+                slot.hidden = false;
+            }
+        }
+        normalized.refreshLocks();
+        return normalized;
+    }
+
     // Lightweight IDDFS with heuristic cutoff; transposition table prunes repeats.
     static int heuristic(const State& s) {
         // Heuristic: count bottles needing work + color fragmentation penalty
@@ -99,13 +110,14 @@ namespace ws {
     SolveResult Solver::solve(const State& start) {
         using clock = std::chrono::steady_clock;
         auto t0 = clock::now();
+        const State solveStart = normalizeForSolve(start);
 
         SolveResult result;
         std::vector<Move> path;
         std::vector<Move> solutionMoves;
         bool foundPath = false;
 
-        if (start.isSolved()) {
+        if (solveStart.isSolved()) {
             result.solved = true;
             result.minMoves = 0;
             result.distinctSolutions = 1;
@@ -113,7 +125,7 @@ namespace ws {
             return result;
         }
 
-        int bound = heuristic(start);
+        int bound = heuristic(solveStart);
 
         auto timeOk = [&] { return std::chrono::duration_cast<std::chrono::milliseconds>(clock::now() - t0).count() < budgetMs; };
 
@@ -167,7 +179,7 @@ namespace ws {
         while (true) {
             if (!timeOk()) { searchTimedOut = true; break; }
             visited.clear();
-            int t = dfs(start, 0, bound);
+            int t = dfs(solveStart, 0, bound);
             if (t < 0) {
                 solvedDepth = -t;
                 result.solved = true;
@@ -196,7 +208,7 @@ namespace ws {
         }
 
         const int solutionSampleLimit = 4;
-        auto countStats = countMinimalSolutions(start, solvedDepth, solutionSampleLimit, timeOk);
+        auto countStats = countMinimalSolutions(solveStart, solvedDepth, solutionSampleLimit, timeOk);
         if (countStats.timedOut) {
             result.timedOut = true;
         }
