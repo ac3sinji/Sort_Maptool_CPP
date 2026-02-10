@@ -9,7 +9,12 @@
 #include <cstdint>
 #include <string>
 #include <chrono>
+#include <fstream>
+#include <iomanip>
 #include <unordered_set>
+#include <deque>
+#include <cctype>
+#include <sstream>
 
 namespace ws {
 
@@ -56,7 +61,68 @@ namespace ws {
         return key;
     }
 
+    static constexpr size_t kGenerationLogMaxLines = 1000;
+    static std::mutex gGenerationLogMutex;
+    static std::deque<std::string> gGenerationLogLines;
+
+    static std::string toLowerCopy(std::string text) {
+        for (char& ch : text) ch = static_cast<char>(std::tolower(static_cast<unsigned char>(ch)));
+        return text;
+    }
+
+    static bool isProblemLogLine(const std::string& line) {
+        const std::string lower = toLowerCopy(line);
+        return lower.find("fail") != std::string::npos ||
+            lower.find("error") != std::string::npos ||
+            lower.find("unable") != std::string::npos ||
+            lower.find("exceed") != std::string::npos ||
+            lower.find("invalid") != std::string::npos;
+    }
+
+    static void loadGenerationLogFromFile() {
+        std::ifstream in("generation_debug.log");
+        if (!in) return;
+
+        std::deque<std::string> loaded;
+        std::string line;
+        while (std::getline(in, line)) {
+            loaded.push_back(line);
+            while (loaded.size() > kGenerationLogMaxLines) loaded.pop_front();
+        }
+
+        std::lock_guard<std::mutex> lock(gGenerationLogMutex);
+        gGenerationLogLines = std::move(loaded);
+    }
+
+    static void appendGenerationLog(const std::string& msg) {
+        auto now = std::chrono::system_clock::now();
+        auto tt = std::chrono::system_clock::to_time_t(now);
+        std::tm tm{};
+#if defined(_WIN32)
+        localtime_s(&tm, &tt);
+#else
+        localtime_r(&tt, &tm);
+#endif
+
+        std::ostringstream oss;
+        oss << std::put_time(&tm, "%F %T") << " | " << msg;
+        const std::string line = oss.str();
+
+        {
+            std::lock_guard<std::mutex> lock(gGenerationLogMutex);
+            gGenerationLogLines.push_back(line);
+            while (gGenerationLogLines.size() > kGenerationLogMaxLines) {
+                gGenerationLogLines.pop_front();
+            }
+        }
+
+        std::ofstream out("generation_debug.log", std::ios::app);
+        if (!out) return;
+        out << line << "\n";
+    }
+
     AppUI::AppUI() :p{ 6,8,4 }, opt{} {
+        loadGenerationLogFromFile();
         workerThreadMax = defaultWorkerMax();
         workerThreads = std::clamp(workerThreads, 1, workerThreadMax);
         tpl.p = p;
@@ -282,6 +348,7 @@ namespace ws {
 
                 int workerCount = std::min(std::max(workerThreads, 1), std::max(1, count));
                 generationThread = std::thread([this, pCopy, optCopy, tplCopy, count, useTemplateNow, workerCount, existingKeys = std::move(existingKeys)]() mutable {
+                    appendGenerationLog("Generate N started: count=" + std::to_string(count) + ", workers=" + std::to_string(workerCount));
                     std::vector<Generated> local;
                     local.reserve(count);
                     std::unordered_set<std::string> seen(existingKeys.begin(), existingKeys.end());
@@ -290,7 +357,9 @@ namespace ws {
                     std::mutex localMutex;
                     std::atomic<int> duplicateCount{ 0 };
                     std::atomic<int> globalAttempts{ 0 };
+                    std::atomic<int> failedAttempts{ 0 };
                     const int maxAttempts = std::max(count * 30, 100);
+                    std::string firstFailureReason;
 
                     auto chunks = splitWorkEvenly(count, workerCount);
                     std::vector<std::thread> workers;
@@ -313,9 +382,23 @@ namespace ws {
                             while (produced < target) {
                                 int attemptNow = ++globalAttempts;
                                 if (attemptNow > maxAttempts) break;
+                                if (attemptNow % 25 == 0) {
+                                    std::string progress = "Generate N in progress: attempts=" + std::to_string(attemptNow) +
+                                        ", completed=" + std::to_string(generationCompleted.load()) + "/" + std::to_string(count);
+                                    setStatus(progress);
+                                    appendGenerationLog(progress);
+                                }
 
-                                auto g = localGen.makeOne(nullptr);
-                                if (!g) continue;
+                                std::string reason;
+                                auto g = localGen.makeOne(nullptr, &reason);
+                                if (!g) {
+                                    failedAttempts.fetch_add(1);
+                                    if (!reason.empty()) {
+                                        std::lock_guard<std::mutex> lock(localMutex);
+                                        if (firstFailureReason.empty()) firstFailureReason = reason;
+                                    }
+                                    continue;
+                                }
 
                                 std::string key = makeStateKey(g->state);
                                 bool accepted = false;
@@ -342,11 +425,28 @@ namespace ws {
                         if (worker.joinable()) worker.join();
                     }
 
+                    appendGenerationLog(
+                        "Generate N finished: generated=" + std::to_string((int)local.size()) + "/" + std::to_string(count) +
+                        ", attempts=" + std::to_string(globalAttempts.load()) +
+                        ", failures=" + std::to_string(failedAttempts.load()) +
+                        ", duplicates=" + std::to_string(duplicateCount.load()) +
+                        (firstFailureReason.empty() ? "" : ", first_failure=\"" + firstFailureReason + "\"")
+                    );
+
                     if (duplicateCount.load() > 0 && (int)local.size() < count) {
-                        setStatus("중복 맵 감지로 재생성 시도 후 " + std::to_string((int)local.size()) + "/" + std::to_string(count) + "개 생성했습니다.");
+                        setStatus("중복/실패 재시도로 " + std::to_string((int)local.size()) + "/" + std::to_string(count) +
+                            "개 생성 (시도 " + std::to_string(globalAttempts.load()) +
+                            ", 실패 " + std::to_string(failedAttempts.load()) + ").");
                     }
                     else if (duplicateCount.load() > 0) {
                         setStatus("중복 맵 " + std::to_string(duplicateCount.load()) + "개를 재생성으로 대체했습니다.");
+                    }
+                    else if ((int)local.size() < count) {
+                        std::string msg = "생성 완료: " + std::to_string((int)local.size()) + "/" + std::to_string(count) +
+                            "개 (시도 " + std::to_string(globalAttempts.load()) +
+                            ", 실패 " + std::to_string(failedAttempts.load()) + ")";
+                        if (!firstFailureReason.empty()) msg += ". 첫 실패 사유: " + firstFailureReason;
+                        setStatus(msg);
                     }
 
                     {
@@ -397,6 +497,12 @@ namespace ws {
 
                 int workerCount = std::min(std::max(workerThreads, 1), std::max(1, count));
                 generationThread = std::thread([this, pCopy, optCopy, cloth, vine, bush, questions, count, questionMaxPerBottle = questionMaxPerBottle, workerCount, existingKeys = std::move(existingKeys)]() mutable {
+                    appendGenerationLog("Auto template generation started: count=" + std::to_string(count) +
+                        ", workers=" + std::to_string(workerCount) +
+                        ", cloth=" + std::to_string(cloth) +
+                        ", vine=" + std::to_string(vine) +
+                        ", bush=" + std::to_string(bush) +
+                        ", question=" + std::to_string(questions));
                     std::vector<Generated> local;
                     std::string status;
                     local.reserve(count);
@@ -407,6 +513,7 @@ namespace ws {
                     std::mutex localMutex;
                     std::atomic<int> duplicateCount{ 0 };
                     std::atomic<int> globalAttempts{ 0 };
+                    std::atomic<int> failedAttempts{ 0 };
                     const int maxAttempts = std::max(count * 40, 150);
 
                     auto chunks = splitWorkEvenly(count, workerCount);
@@ -426,6 +533,12 @@ namespace ws {
                             while (produced < target) {
                                 int attemptNow = ++globalAttempts;
                                 if (attemptNow > maxAttempts) break;
+                                if (attemptNow % 25 == 0) {
+                                    std::string progress = "Auto template in progress: attempts=" + std::to_string(attemptNow) +
+                                        ", completed=" + std::to_string(generationCompleted.load()) + "/" + std::to_string(count);
+                                    setStatus(progress);
+                                    appendGenerationLog(progress);
+                                }
 
                                 std::string reason;
                                 auto tplOpt = localGen.buildRandomTemplate(cloth, vine, bush, questions, questionMaxPerBottle, &reason);
@@ -440,6 +553,7 @@ namespace ws {
                                 localGen.setBase(*tplOpt);
                                 auto g = localGen.makeOne(nullptr, &reason);
                                 if (!g) {
+                                    failedAttempts.fetch_add(1);
                                     std::lock_guard<std::mutex> lock(localMutex);
                                     if (status.empty() && !reason.empty()) {
                                         status = reason;
@@ -472,6 +586,14 @@ namespace ws {
                         if (worker.joinable()) worker.join();
                     }
 
+                    appendGenerationLog(
+                        "Auto template generation finished: generated=" + std::to_string((int)local.size()) + "/" + std::to_string(count) +
+                        ", attempts=" + std::to_string(globalAttempts.load()) +
+                        ", failures=" + std::to_string(failedAttempts.load()) +
+                        ", duplicates=" + std::to_string(duplicateCount.load()) +
+                        (status.empty() ? "" : ", status=\"" + status + "\"")
+                    );
+
                     {
                         std::lock_guard<std::mutex> lock(pendingMutex);
                         for (auto& item : local) {
@@ -481,7 +603,9 @@ namespace ws {
 
                     if (status.empty()) {
                         if ((int)local.size() < count) {
-                            status = "중복/생성 실패로 " + std::to_string((int)local.size()) + "/" + std::to_string(count) + "개만 생성했습니다.";
+                            status = "중복/생성 실패로 " + std::to_string((int)local.size()) + "/" + std::to_string(count) +
+                                "개만 생성 (시도 " + std::to_string(globalAttempts.load()) +
+                                ", 실패 " + std::to_string(failedAttempts.load()) + ").";
                         }
                         else if (duplicateCount.load() > 0) {
                             status = "중복 맵 " + std::to_string(duplicateCount.load()) + "개를 재생성으로 대체했습니다.";
@@ -573,6 +697,42 @@ namespace ws {
             IM_COL32(30,30,30,255)
         };
         if (c > 20) c = 20; return table[c];
+    }
+
+    void AppUI::drawGenerationLogWindow() {
+        ImGui::Begin("Generation Logs");
+
+        if (ImGui::Button("Clear View")) {
+            std::lock_guard<std::mutex> lock(gGenerationLogMutex);
+            gGenerationLogLines.clear();
+        }
+        ImGui::SameLine();
+        ImGui::TextDisabled("problem logs are highlighted");
+
+        ImGui::Separator();
+        ImGui::BeginChild("generation-log-scroll", ImVec2(0, 0), true, ImGuiWindowFlags_HorizontalScrollbar);
+
+        std::vector<std::string> snapshot;
+        {
+            std::lock_guard<std::mutex> lock(gGenerationLogMutex);
+            snapshot.assign(gGenerationLogLines.begin(), gGenerationLogLines.end());
+        }
+
+        for (const auto& line : snapshot) {
+            if (isProblemLogLine(line)) {
+                ImGui::TextColored(ImVec4(1.0f, 0.35f, 0.35f, 1.0f), "%s", line.c_str());
+            }
+            else {
+                ImGui::TextUnformatted(line.c_str());
+            }
+        }
+
+        if (ImGui::GetScrollY() >= ImGui::GetScrollMaxY() - 10.0f) {
+            ImGui::SetScrollHereY(1.0f);
+        }
+
+        ImGui::EndChild();
+        ImGui::End();
     }
 
     void AppUI::drawViewer() {
@@ -906,6 +1066,7 @@ namespace ws {
             drawTemplate();   // ← 추가
             drawViewer();
             drawEditor();
+            drawGenerationLogWindow();
 
             ImGui::Render();
             SDL_SetRenderDrawColor(renderer, 20, 20, 24, 255);

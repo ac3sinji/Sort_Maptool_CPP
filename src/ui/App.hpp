@@ -49,6 +49,7 @@ namespace ws {
         void drawEditor();
         void drawViewer();
         void drawTemplate();           // 템플릿 편집창
+        void drawGenerationLogWindow();
         void syncTemplateWithParams(); // Colors/Bottles/Capacity 바뀔 때 템플릿 맞춰주기
         void collectGenerated();
         void setStatus(const std::string& msg);
