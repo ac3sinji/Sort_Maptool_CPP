@@ -30,21 +30,6 @@ namespace ws {
         }
 
         auto heights = opt.randomizeHeights ? computeRandomizedHeights() : computeDefaultHeights();
-        std::vector<int> candidates;
-        candidates.reserve(p.numBottles);
-        for (int i = 0; i < p.numBottles; ++i) {
-            int h = (i < (int)heights.size()) ? heights[i] : 0;
-            if (h > 0) candidates.push_back(i);
-        }
-
-        int usableSlots = (int)candidates.size();
-        int limit = usableSlots; // 랜덤 높이 배분으로 reserveEmpty를 초과해 채울 수 있으므로 실제 채워진 병 수를 기준으로 제한
-        if (requested > limit) {
-            std::string heightNote = opt.randomizeHeights ? " after random height allocation" : "";
-            setReason("Not enough fillable bottles" + heightNote + " to satisfy requested gimmick counts (" +
-                std::to_string(requested) + " requested, " + std::to_string(limit) + " available).");
-            return std::nullopt;
-        }
         long long sumH = 0; for (int h : heights) sumH += h;
         long long expected = 1ll * p.numColors * p.capacity;
         if (sumH != expected) {
@@ -62,11 +47,6 @@ namespace ws {
             std::swap(bag[i], bag[j]);
         }
 
-        for (size_t i = 0; i < candidates.size(); ++i) {
-            size_t j = (size_t)rng.irange((int)i, (int)candidates.size() - 1);
-            std::swap(candidates[i], candidates[j]);
-        }
-
         State tpl; tpl.p = p; tpl.B.resize(p.numBottles);
         size_t pos = 0;
         for (int i = 0; i < p.numBottles; ++i) {
@@ -78,51 +58,101 @@ namespace ws {
             }
         }
 
-        auto assignOne = [&](StackGimmickKind kind) {
-            if (candidates.empty()) return false;
-            int idx = candidates.back();
-            candidates.pop_back();
-            auto& g = tpl.B[idx].gimmick;
-            g.kind = kind;
-            if (kind == StackGimmickKind::Cloth) {
-                int target = rng.irange(1, std::max(1, p.numColors));
-                g.clothTarget = (Color)target;
+        auto isMonoBottle = [](const Bottle& b) {
+            if (b.slots.empty()) return false;
+            Color c = b.slots.front().c;
+            for (const auto& s : b.slots) {
+                if (s.c != c) return false;
             }
             return true;
             };
 
-        for (int i = 0; i < clothCount; ++i) {
-            if (!assignOne(StackGimmickKind::Cloth)) {
-                setReason("Unable to place all Cloth gimmicks.");
-                return std::nullopt;
-            }
-        }
-        for (int i = 0; i < vineCount; ++i) {
-            if (!assignOne(StackGimmickKind::Vine)) {
-                setReason("Unable to place all Vine gimmicks.");
-                return std::nullopt;
-            }
-        }
-        for (int i = 0; i < bushCount; ++i) {
-            if (!assignOne(StackGimmickKind::Bush)) {
-                setReason("Unable to place all Bush gimmicks.");
-                return std::nullopt;
-            }
-        }
+        auto hasAnyFilled = [&](const Bottle& b) {
+            return !b.slots.empty();
+            };
 
-        for (auto& bottle : tpl.B) {
-            if (bottle.gimmick.kind != StackGimmickKind::Vine) continue;
-            if (bottle.slots.size() <= 1) continue;
-            Color seed = bottle.slots.front().c;
-            bool mono = true;
-            for (const auto& s : bottle.slots) {
-                if (s.c != seed) { mono = false; break; }
+        auto hasMissingColor = [&](const Bottle& b) {
+            std::vector<bool> present(p.numColors + 1, false);
+            for (const auto& s : b.slots) {
+                if (s.c >= 1 && s.c <= p.numColors) present[s.c] = true;
             }
-            if (!mono) {
-                for (auto& s : bottle.slots) {
-                    s.c = seed;
+            for (Color c = 1; c <= p.numColors; ++c) {
+                if (!present[c]) return true;
+            }
+            return false;
+            };
+
+        auto tryPlaceGimmicks = [&]() -> bool {
+            for (auto& b : tpl.B) b.gimmick = StackGimmick{};
+
+            std::vector<int> order(p.numBottles);
+            std::iota(order.begin(), order.end(), 0);
+
+            auto shuffleOrder = [&]() {
+                for (size_t i = 0; i < order.size(); ++i) {
+                    size_t j = (size_t)rng.irange((int)i, (int)order.size() - 1);
+                    std::swap(order[i], order[j]);
                 }
+                };
+
+            auto pickEligible = [&](auto&& pred) -> int {
+                shuffleOrder();
+                for (int idx : order) {
+                    const auto& b = tpl.B[idx];
+                    if (b.gimmick.kind != StackGimmickKind::None) continue;
+                    if (pred(b)) return idx;
+                }
+                return -1;
+                };
+
+            for (int i = 0; i < vineCount; ++i) {
+                int idx = pickEligible([&](const Bottle& b) {
+                    return b.slots.empty() || isMonoBottle(b);
+                    });
+                if (idx < 0) return false;
+                tpl.B[idx].gimmick.kind = StackGimmickKind::Vine;
             }
+
+            for (int i = 0; i < bushCount; ++i) {
+                int idx = pickEligible([&](const Bottle& b) {
+                    return hasAnyFilled(b);
+                    });
+                if (idx < 0) return false;
+                tpl.B[idx].gimmick.kind = StackGimmickKind::Bush;
+            }
+
+            for (int i = 0; i < clothCount; ++i) {
+                int idx = pickEligible([&](const Bottle& b) {
+                    return hasMissingColor(b);
+                    });
+                if (idx < 0) return false;
+
+                std::vector<bool> present(p.numColors + 1, false);
+                for (const auto& s : tpl.B[idx].slots) {
+                    if (s.c >= 1 && s.c <= p.numColors) present[s.c] = true;
+                }
+                std::vector<Color> missing;
+                missing.reserve((size_t)p.numColors);
+                for (Color c = 1; c <= p.numColors; ++c) {
+                    if (!present[c]) missing.push_back(c);
+                }
+                if (missing.empty()) return false;
+
+                int pick = rng.irange(0, (int)missing.size() - 1);
+                tpl.B[idx].gimmick.kind = StackGimmickKind::Cloth;
+                tpl.B[idx].gimmick.clothTarget = missing[(size_t)pick];
+            }
+
+            return true;
+            };
+
+        bool gimmickPlaced = false;
+        for (int attempt = 0; attempt < 128 && !gimmickPlaced; ++attempt) {
+            gimmickPlaced = tryPlaceGimmicks();
+        }
+        if (!gimmickPlaced) {
+            setReason("Unable to place gimmicks with current constraints (Vine: mono/empty, Bush: filled, Cloth: missing target color).");
+            return std::nullopt;
         }
 
         const bool excludeTopSlots = true;
@@ -175,10 +205,6 @@ namespace ws {
         // scramble step을 진행할수록 섞이는 과정을 재생한다.
         if (base && !opt.startMixed && !initial) {
             State st = State::goal(p);
-            for (size_t i = 0; i < st.B.size() && i < base->B.size(); ++i) {
-                st.B[i].gimmick = base->B[i].gimmick;
-            }
-
             st.refreshLocks();
             return st;
         }
@@ -285,6 +311,9 @@ namespace ws {
                 scrambleStart = s;
                 scramble(s, mix, &scrambleMoves);
                 applyTemplateHiddenAfterScramble(s);
+                if (!applyTemplateGimmicksAfterScramble(s)) {
+                    continue;
+                }
             }
             // startMixed ON: 이미 랜덤 섞임 시작점에서 바로 solve
             else {
@@ -375,6 +404,52 @@ namespace ws {
             auto [bi, si] = leftovers[i];
             s.B[bi].slots[si].hidden = true;
         }
+    }
+
+
+    bool Generator::applyTemplateGimmicksAfterScramble(State& s) {
+        if (!base) {
+            s.refreshLocks();
+            return true;
+        }
+
+        auto isMonoOrEmpty = [](const Bottle& b) {
+            if (b.slots.empty()) return true;
+            Color c = b.slots.front().c;
+            for (const auto& slot : b.slots) {
+                if (slot.c != c) return false;
+            }
+            return true;
+            };
+
+        for (size_t i = 0; i < s.B.size() && i < base->B.size(); ++i) {
+            s.B[i].gimmick = StackGimmick{};
+        }
+
+        for (size_t i = 0; i < s.B.size() && i < base->B.size(); ++i) {
+            const auto& g = base->B[i].gimmick;
+            if (g.kind == StackGimmickKind::None) continue;
+
+            const auto& b = s.B[i];
+            if (g.kind == StackGimmickKind::Vine) {
+                if (!isMonoOrEmpty(b)) return false;
+            }
+            else if (g.kind == StackGimmickKind::Bush) {
+                if (b.slots.empty()) return false;
+            }
+            else if (g.kind == StackGimmickKind::Cloth) {
+                Color t = g.clothTarget;
+                if (t <= 0) return false;
+                for (const auto& slot : b.slots) {
+                    if (slot.c == t) return false;
+                }
+            }
+
+            s.B[i].gimmick = g;
+        }
+
+        s.refreshLocks();
+        return true;
     }
 
     std::vector<int> Generator::computeDefaultHeights() const {
