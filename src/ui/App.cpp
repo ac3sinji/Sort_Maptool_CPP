@@ -85,8 +85,10 @@ namespace ws {
         ImGui::Text("Params");
         bool pChanged = false;
         pChanged |= InputIntClamped("Colors (max 9)", &p.numColors, 1, 9);
-        pChanged |= InputIntClamped("Bottles", &p.numBottles, 3, 30);
+        const int minBottlesForColors = std::max(3, p.numColors + 1);
+        pChanged |= InputIntClamped("Bottles", &p.numBottles, minBottlesForColors, 30);
         pChanged |= InputIntClamped("Capacity", &p.capacity, 3, 50);
+        ImGui::TextDisabled("Bottles must be at least Colors + 1.");
         ImGui::Separator();
         ImGui::Text("Generator");
         if (InputIntClamped("Mix min", &opt.mixMin, 10, 300, 5, 20)) {
