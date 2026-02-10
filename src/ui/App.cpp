@@ -582,7 +582,7 @@ namespace ws {
                                 localGen.setBase(*tplOpt);
                                 auto g = localGen.makeOne(nullptr, &reason);
                                 if (!g) {
-                                    failedAttempts.fetch_add(1);
+                                    const int failCountNow = failedAttempts.fetch_add(1) + 1;
                                     std::lock_guard<std::mutex> lock(localMutex);
                                     if (firstGenerationFailureReason.empty() && !reason.empty()) {
                                         firstGenerationFailureReason = reason;
@@ -590,6 +590,18 @@ namespace ws {
                                     if (status.empty() && !reason.empty()) {
                                         status = reason;
                                     }
+
+                                    std::string failureLog =
+                                        "Generation failure #" + std::to_string(failCountNow) +
+                                        " (attempt=" + std::to_string(attemptNow) +
+                                        ", worker=" + std::to_string(workerOpt.seed - optCopy.seed) + ")";
+                                    if (!reason.empty()) {
+                                        failureLog += ": " + reason;
+                                    }
+                                    else {
+                                        failureLog += ": reason unavailable";
+                                    }
+                                    appendGenerationLog(failureLog);
                                     continue;
                                 }
 
