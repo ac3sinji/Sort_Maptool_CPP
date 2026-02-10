@@ -1034,7 +1034,7 @@ namespace ws {
     int AppUI::run() {
         // SDL2 init
         SDL_Init(SDL_INIT_VIDEO);
-        SDL_Window* window = SDL_CreateWindow("WaterSort Map Tool", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 1400, 900, SDL_WINDOW_SHOWN);
+        SDL_Window* window = SDL_CreateWindow("WaterSort Map Tool", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 1500, 950, SDL_WINDOW_SHOWN);
         SDL_Renderer* renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
 
         IMGUI_CHECKVERSION();
