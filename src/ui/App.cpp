@@ -157,8 +157,8 @@ namespace ws {
 
         std::ostringstream oss;
         oss << std::fixed << std::setprecision(3)
-            << "평균 맵 생성 시간: " << averageMinutes << "분/맵"
-            << " (총 " << elapsedMinutes << "분, " << generatedCount << "개 기준)";
+            << "Average map generation time: " << averageMinutes << " min/map"
+            << " (total " << elapsedMinutes << " min, based on " << generatedCount << " maps)";
         return oss.str();
     }
 
@@ -231,7 +231,7 @@ namespace ws {
             }
 
             if (duplicateCount > 0) {
-                setStatus("중복 맵 " + std::to_string(duplicateCount) + "개를 제외했습니다.");
+                setStatus("Excluded " + std::to_string(duplicateCount) + " duplicate maps.");
             }
 
             if (currentIndex < 0 && !generated.empty()) ensureIndex(0);
@@ -276,7 +276,7 @@ namespace ws {
         ImGui::SameLine();
         ImGui::TextDisabled("(?)");
         if (ImGui::IsItemHovered()) {
-            ImGui::SetTooltip("Cloth/Vine/Bush 개수는 자동 템플릿 생성 시 병에 배치되는 기믹 수입니다.");
+            ImGui::SetTooltip("Cloth/Vine/Bush counts are the number of gimmicks placed in bottles during auto-template generation.");
         }
         InputIntClamped("Cloth count", &clothCount, 0, p.numBottles);
         InputIntClamped("Vine count", &vineCount, 0, p.numBottles);
@@ -479,18 +479,18 @@ namespace ws {
 
                     std::string finalStatus;
                     if (duplicateCount.load() > 0 && (int)local.size() < count) {
-                        finalStatus = "중복/실패 재시도로 " + std::to_string((int)local.size()) + "/" + std::to_string(count) +
-                            "개 생성 (시도 " + std::to_string(globalAttempts.load()) +
-                            ", 실패 " + std::to_string(failedAttempts.load()) + ").";
+                        finalStatus = "Generated " + std::to_string((int)local.size()) + "/" + std::to_string(count) +
+                            " maps after retrying duplicates/failures (attempts " + std::to_string(globalAttempts.load()) +
+                            ", failures " + std::to_string(failedAttempts.load()) + ").";
                     }
                     else if (duplicateCount.load() > 0) {
-                        finalStatus = "중복 맵 " + std::to_string(duplicateCount.load()) + "개를 재생성으로 대체했습니다.";
+                        finalStatus = "Replaced " + std::to_string(duplicateCount.load()) + " duplicate maps via regeneration.";
                     }
                     else if ((int)local.size() < count) {
-                        finalStatus = "생성 완료: " + std::to_string((int)local.size()) + "/" + std::to_string(count) +
-                            "개 (시도 " + std::to_string(globalAttempts.load()) +
-                            ", 실패 " + std::to_string(failedAttempts.load()) + ")";
-                        if (!firstFailureReason.empty()) finalStatus += ". 첫 실패 사유: " + firstFailureReason;
+                        finalStatus = "Generation complete: " + std::to_string((int)local.size()) + "/" + std::to_string(count) +
+                            " maps (attempts " + std::to_string(globalAttempts.load()) +
+                            ", failures " + std::to_string(failedAttempts.load()) + ")";
+                        if (!firstFailureReason.empty()) finalStatus += ". First failure reason: " + firstFailureReason;
                     }
                     if (!finalStatus.empty()) finalStatus += " | ";
                     finalStatus += avgMinutesLog;
@@ -681,12 +681,12 @@ namespace ws {
 
                     if (status.empty()) {
                         if ((int)local.size() < count) {
-                            status = "중복/생성 실패로 " + std::to_string((int)local.size()) + "/" + std::to_string(count) +
-                                "개만 생성 (시도 " + std::to_string(globalAttempts.load()) +
-                                ", 실패 " + std::to_string(failedAttempts.load()) + ").";
+                            status = "Generated only " + std::to_string((int)local.size()) + "/" + std::to_string(count) +
+                                " maps due to duplicate/generation failures (attempts " + std::to_string(globalAttempts.load()) +
+                                ", failures " + std::to_string(failedAttempts.load()) + ").";
                         }
                         else if (duplicateCount.load() > 0) {
-                            status = "중복 맵 " + std::to_string(duplicateCount.load()) + "개를 재생성으로 대체했습니다.";
+                            status = "Replaced " + std::to_string(duplicateCount.load()) + " duplicate maps via regeneration.";
                         }
                         else {
                             status = std::string("Auto template generation complete (heights ") +
