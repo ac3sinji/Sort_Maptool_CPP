@@ -177,11 +177,6 @@ namespace ws {
             State st = State::goal(p);
             for (size_t i = 0; i < st.B.size() && i < base->B.size(); ++i) {
                 st.B[i].gimmick = base->B[i].gimmick;
-                const auto& src = base->B[i].slots;
-                auto& dst = st.B[i].slots;
-                for (size_t k = 0; k < dst.size() && k < src.size(); ++k) {
-                    dst[k].hidden = src[k].hidden;
-                }
             }
 
             st.refreshLocks();
@@ -195,11 +190,6 @@ namespace ws {
         if (base) {
             for (size_t i = 0; i < st.B.size() && i < base->B.size(); ++i) {
                 st.B[i].gimmick = base->B[i].gimmick;
-                const auto& src = base->B[i].slots;
-                auto& dst = st.B[i].slots;
-                for (size_t k = 0; k < dst.size() && k < src.size(); ++k) {
-                    dst[k].hidden = src[k].hidden;
-                }
             }
         }
 
@@ -294,6 +284,7 @@ namespace ws {
             if (!opt.startMixed) {
                 scrambleStart = s;
                 scramble(s, mix, &scrambleMoves);
+                applyTemplateHiddenAfterScramble(s);
             }
             // startMixed ON: 이미 랜덤 섞임 시작점에서 바로 solve
             else {
@@ -320,6 +311,70 @@ namespace ws {
             // 실패 시 다음 시도
         }
         return std::nullopt;
+    }
+
+    void Generator::applyTemplateHiddenAfterScramble(State& s) {
+        if (!base) return;
+
+        int totalRequested = 0;
+        std::vector<int> perBottleRequested(s.B.size(), 0);
+        for (size_t bi = 0; bi < s.B.size() && bi < base->B.size(); ++bi) {
+            const auto& tplBottle = base->B[bi];
+            int count = 0;
+            for (const auto& slot : tplBottle.slots) {
+                if (slot.hidden) ++count;
+            }
+            perBottleRequested[bi] = count;
+            totalRequested += count;
+        }
+
+        if (totalRequested <= 0) return;
+
+        for (auto& bottle : s.B) {
+            for (auto& slot : bottle.slots) {
+                slot.hidden = false;
+            }
+        }
+
+        std::vector<std::pair<int, int>> leftovers;
+        int placed = 0;
+        for (size_t bi = 0; bi < s.B.size(); ++bi) {
+            auto& bottle = s.B[bi];
+            int eligible = std::max(0, bottle.size() - 1); // top slot 제외
+            if (eligible <= 0) continue;
+
+            std::vector<int> indices;
+            indices.reserve((size_t)eligible);
+            for (int si = 0; si < eligible; ++si) indices.push_back(si);
+            for (size_t i = 0; i < indices.size(); ++i) {
+                size_t j = (size_t)rng.irange((int)i, (int)indices.size() - 1);
+                std::swap(indices[i], indices[j]);
+            }
+
+            int requested = (bi < perBottleRequested.size()) ? perBottleRequested[bi] : 0;
+            int take = std::min(requested, eligible);
+            for (int i = 0; i < take; ++i) {
+                bottle.slots[indices[i]].hidden = true;
+            }
+            placed += take;
+
+            for (int i = take; i < eligible; ++i) {
+                leftovers.emplace_back((int)bi, indices[i]);
+            }
+        }
+
+        int remain = totalRequested - placed;
+        if (remain <= 0 || leftovers.empty()) return;
+
+        for (size_t i = 0; i < leftovers.size(); ++i) {
+            size_t j = (size_t)rng.irange((int)i, (int)leftovers.size() - 1);
+            std::swap(leftovers[i], leftovers[j]);
+        }
+        int extra = std::min(remain, (int)leftovers.size());
+        for (int i = 0; i < extra; ++i) {
+            auto [bi, si] = leftovers[i];
+            s.B[bi].slots[si].hidden = true;
+        }
     }
 
     std::vector<int> Generator::computeDefaultHeights() const {

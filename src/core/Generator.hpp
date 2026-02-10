@@ -65,6 +65,7 @@ namespace ws {
         std::vector<int> computeHeightsFromTemplate(const State& baseTpl) const;
         std::vector<SupportSpec> buildSupportPlan(const std::vector<int>& heights) const;
         State createRandomMixedWithHeights(const std::vector<int>& heights);
+        void applyTemplateHiddenAfterScramble(State& s);
         bool hasAnyMove(const State& s) const;
         void breakPreSolvedStacks(State& st);
         void fixClothStart(State& st);                  // Cloth 병 안의 타깃색을 마지막에 제거(스왑)하는 안전망
