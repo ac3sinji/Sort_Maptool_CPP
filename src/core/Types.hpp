@@ -39,9 +39,10 @@ namespace ws {
         int topChunk() const {
             if (slots.empty()) return 0;
             Color t = slots.back().c;
-            if (t == 0) return 0;
+            if (t == 0 || slots.back().hidden) return 0;
             int cnt = 0;
             for (int i = static_cast<int>(slots.size()) - 1; i >= 0; --i) {
+                if (slots[i].hidden) break;
                 if (slots[i].c == t) ++cnt; else break;
             }
             return cnt;
