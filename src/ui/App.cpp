@@ -108,19 +108,14 @@ namespace ws {
             lower.find("invalid") != std::string::npos;
     }
 
-    static void loadGenerationLogFromFile() {
-        std::ifstream in("generation_debug.log");
-        if (!in) return;
-
-        std::deque<std::string> loaded;
-        std::string line;
-        while (std::getline(in, line)) {
-            loaded.push_back(line);
-            while (loaded.size() > kGenerationLogMaxLines) loaded.pop_front();
+    static void resetGenerationLogAtStartup() {
+        {
+            std::lock_guard<std::mutex> lock(gGenerationLogMutex);
+            gGenerationLogLines.clear();
         }
 
-        std::lock_guard<std::mutex> lock(gGenerationLogMutex);
-        gGenerationLogLines = std::move(loaded);
+        std::ofstream out("generation_debug.log", std::ios::trunc);
+        (void)out;
     }
 
     static void appendGenerationLog(const std::string& msg) {
@@ -163,7 +158,7 @@ namespace ws {
     }
 
     AppUI::AppUI() :p{ 6,8,4 }, opt{} {
-        loadGenerationLogFromFile();
+        resetGenerationLogAtStartup();
         workerThreadMax = defaultWorkerMax();
         workerThreads = std::clamp(workerThreads, 1, workerThreadMax);
         tpl.p = p;
