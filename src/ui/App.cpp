@@ -25,15 +25,6 @@ namespace ws {
         return std::max(1u, std::min(hw, 16u));
     }
 
-    static std::vector<int> splitWorkEvenly(int total, int workers) {
-        workers = std::max(1, workers);
-        std::vector<int> chunks(workers, total / workers);
-        for (int i = 0; i < total % workers; ++i) {
-            ++chunks[i];
-        }
-        return chunks;
-    }
-
     static std::string makeStateKey(const State& s) {
         std::string key;
         key.reserve(2048);
@@ -407,25 +398,23 @@ namespace ws {
                     const int maxAttempts = std::max(count * 30, 100);
                     std::string firstFailureReason;
 
-                    auto chunks = splitWorkEvenly(count, workerCount);
                     std::vector<std::thread> workers;
-                    workers.reserve(chunks.size());
+                    workers.reserve((size_t)workerCount);
 
-                    for (size_t workerIdx = 0; workerIdx < chunks.size(); ++workerIdx) {
-                        const int target = chunks[workerIdx];
-                        if (target <= 0) continue;
+                    for (int workerIdx = 0; workerIdx < workerCount; ++workerIdx) {
 
                         GenOptions workerOpt = optCopy;
                         workerOpt.seed = optCopy.seed + static_cast<uint64_t>(workerIdx);
 
-                        workers.emplace_back([&, workerOpt, target]() mutable {
+                        workers.emplace_back([&, workerOpt]() mutable {
                             Generator localGen(pCopy, workerOpt);
                             if (useTemplateNow) {
                                 localGen.setBase(tplCopy);
                             }
 
-                            int produced = 0;
-                            while (produced < target) {
+                            while (true) {
+                                if (generationCompleted.load() >= count) break;
+
                                 int attemptNow = ++globalAttempts;
                                 if (attemptNow > maxAttempts) break;
                                 if (attemptNow % 25 == 0) {
@@ -450,14 +439,13 @@ namespace ws {
                                 bool accepted = false;
                                 {
                                     std::lock_guard<std::mutex> lock(localMutex);
-                                    if (seen.insert(key).second) {
+                                    if ((int)local.size() < count && seen.insert(key).second) {
                                         local.push_back(std::move(*g));
                                         accepted = true;
                                     }
                                 }
 
                                 if (accepted) {
-                                    ++produced;
                                     generationCompleted.fetch_add(1);
                                 }
                                 else {
@@ -571,21 +559,19 @@ namespace ws {
                     std::string firstTemplateFailureReason;
                     std::string firstGenerationFailureReason;
 
-                    auto chunks = splitWorkEvenly(count, workerCount);
                     std::vector<std::thread> workers;
-                    workers.reserve(chunks.size());
+                    workers.reserve((size_t)workerCount);
 
-                    for (size_t workerIdx = 0; workerIdx < chunks.size(); ++workerIdx) {
-                        const int target = chunks[workerIdx];
-                        if (target <= 0) continue;
+                    for (int workerIdx = 0; workerIdx < workerCount; ++workerIdx) {
 
                         GenOptions workerOpt = optCopy;
                         workerOpt.seed = optCopy.seed + static_cast<uint64_t>(workerIdx);
 
-                        workers.emplace_back([&, workerOpt, target]() mutable {
+                        workers.emplace_back([&, workerOpt]() mutable {
                             Generator localGen(pCopy, workerOpt);
-                            int produced = 0;
-                            while (produced < target) {
+                            while (true) {
+                                if (generationCompleted.load() >= count) break;
+
                                 int attemptNow = ++globalAttempts;
                                 if (attemptNow > maxAttempts) break;
                                 if (attemptNow % 25 == 0) {
@@ -642,14 +628,13 @@ namespace ws {
                                 bool accepted = false;
                                 {
                                     std::lock_guard<std::mutex> lock(localMutex);
-                                    if (seen.insert(key).second) {
+                                    if ((int)local.size() < count && seen.insert(key).second) {
                                         local.push_back(std::move(*g));
                                         accepted = true;
                                     }
                                 }
 
                                 if (accepted) {
-                                    ++produced;
                                     generationCompleted.fetch_add(1);
                                 }
                                 else {
