@@ -5,6 +5,19 @@
 
 namespace ws {
 
+    static void revealHiddenChainBelowIfSameColor(Bottle& bottle, int openedIndex) {
+        if (openedIndex < 0 || openedIndex >= (int)bottle.slots.size()) return;
+        int idx = openedIndex;
+        while (idx - 1 >= 0) {
+            auto& upper = bottle.slots[idx];
+            auto& lower = bottle.slots[idx - 1];
+            if (!lower.hidden) break;
+            if (lower.c != upper.c) break;
+            lower.hidden = false;
+            --idx;
+        }
+    }
+
     static uint64_t rotl(uint64_t x, int r) { return (x << r) | (x >> (64 - r)); }
     uint64_t RNG::next() { s ^= rotl(s, 7); s ^= (s >> 9); return s * 0x9E3779B97F4A7C15ULL; }
     int RNG::irange(int lo, int hi) { return lo + int(next() % uint64_t(hi - lo + 1)); }
@@ -93,13 +106,23 @@ namespace ws {
         Color col = f.topColor();
         for (int i = 0; i < amount; ++i) {
             auto s = f.slots.back();
+            const bool wasHidden = s.hidden;
             s.hidden = false; // when leaving source top, it’s revealed already
             t.slots.push_back(s);
+            if (wasHidden) {
+                revealHiddenChainBelowIfSameColor(t, (int)t.slots.size() - 1);
+            }
             f.slots.pop_back();
         }
         // After move, revealing rule: if new top of any bottle has hidden=true and is now at top, it becomes visible
-        if (!f.slots.empty()) f.slots.back().hidden = false;
-        if (!t.slots.empty()) t.slots.back().hidden = false;
+        if (!f.slots.empty() && f.slots.back().hidden) {
+            f.slots.back().hidden = false;
+            revealHiddenChainBelowIfSameColor(f, (int)f.slots.size() - 1);
+        }
+        if (!t.slots.empty() && t.slots.back().hidden) {
+            t.slots.back().hidden = false;
+            revealHiddenChainBelowIfSameColor(t, (int)t.slots.size() - 1);
+        }
 
         // update locks (mono full may have changed)
         refreshLocks();
