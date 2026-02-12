@@ -158,6 +158,20 @@ namespace ws {
         const bool excludeTopSlots = true;
         std::vector<std::pair<int, int>> hideCandidates;
         hideCandidates.reserve((size_t)expected);
+        auto canPlaceQuestionAt = [](const Bottle& b, int slotIndex) {
+            if (slotIndex < 0 || slotIndex >= (int)b.slots.size()) return false;
+            const int topIndex = (int)b.slots.size() - 1;
+            if (slotIndex >= topIndex) return false;
+
+            // Extra policy:
+            // If the slot right above is the bottle's top filled slot and has the same color,
+            // do not allow placing a question gimmick at this position.
+            if (slotIndex + 1 == topIndex && b.slots[slotIndex].c == b.slots[slotIndex + 1].c) {
+                return false;
+            }
+            return true;
+            };
+
         int totalQuestionCapacity = 0;
         for (int bi = 0; bi < p.numBottles; ++bi) {
             const auto& b = tpl.B[bi];
@@ -169,9 +183,11 @@ namespace ws {
                 bottleCapacity = std::min(bottleCapacity, questionMaxPerBottle);
             }
             bottleCapacity = std::max(0, bottleCapacity);
-            totalQuestionCapacity += bottleCapacity;
             for (int si = 0; si < bottleCapacity; ++si) {
-                hideCandidates.emplace_back(bi, si);
+                if (canPlaceQuestionAt(b, si)) {
+                    hideCandidates.emplace_back(bi, si);
+                    ++totalQuestionCapacity;
+                }
             }
         }
         if (questionCount > totalQuestionCapacity) {
