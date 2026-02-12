@@ -56,6 +56,8 @@ namespace ws {
     static constexpr size_t kGenerationLogMaxLines = 1000;
     static std::mutex gGenerationLogMutex;
     static std::deque<std::string> gGenerationLogLines;
+    static std::mutex gStatusMirrorMutex;
+    static std::string gLastMirroredStatus;
 
     static std::string toLowerCopy(std::string text) {
         for (char& ch : text) ch = static_cast<char>(std::tolower(static_cast<unsigned char>(ch)));
@@ -134,6 +136,18 @@ namespace ws {
         std::ofstream out("generation_debug.log", std::ios::app);
         if (!out) return;
         out << line << "\n";
+    }
+
+    static void mirrorStatusToGenerationLog(const std::string& status) {
+        std::lock_guard<std::mutex> lock(gStatusMirrorMutex);
+        if (status.empty()) {
+            gLastMirroredStatus.clear();
+            return;
+        }
+
+        if (status == gLastMirroredStatus) return;
+        gLastMirroredStatus = status;
+        appendGenerationLog("Status: " + status);
     }
 
     static std::string buildAverageMinutesLog(std::chrono::steady_clock::time_point startedAt, int generatedCount) {
@@ -701,6 +715,7 @@ namespace ws {
         }
 
         std::string status = getStatus();
+        mirrorStatusToGenerationLog(status);
         if (!status.empty()) {
             ImGui::TextColored(ImVec4(0.9f, 0.6f, 0.5f, 1.0f), "%s", status.c_str());
         }
