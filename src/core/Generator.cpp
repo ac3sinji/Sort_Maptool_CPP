@@ -385,6 +385,19 @@ namespace ws {
     void Generator::applyTemplateHiddenAfterScramble(State& s) {
         if (!base) return;
 
+        auto canPlaceQuestionAt = [](const Bottle& b, int slotIndex) {
+            if (slotIndex < 0 || slotIndex >= (int)b.slots.size()) return false;
+            const int topIndex = (int)b.slots.size() - 1;
+            if (slotIndex >= topIndex) return false;
+
+            // Keep the same rule as template generation:
+            // if the slot is right below top and has the same color as top, do not hide it.
+            if (slotIndex + 1 == topIndex && b.slots[slotIndex].c == b.slots[topIndex].c) {
+                return false;
+            }
+            return true;
+            };
+
         int totalRequested = 0;
         std::vector<int> perBottleRequested(s.B.size(), 0);
         for (size_t bi = 0; bi < s.B.size() && bi < base->B.size(); ++bi) {
@@ -409,25 +422,28 @@ namespace ws {
         int placed = 0;
         for (size_t bi = 0; bi < s.B.size(); ++bi) {
             auto& bottle = s.B[bi];
-            int eligible = std::max(0, bottle.size() - 1); // top slot 제외
-            if (eligible <= 0) continue;
-
             std::vector<int> indices;
-            indices.reserve((size_t)eligible);
-            for (int si = 0; si < eligible; ++si) indices.push_back(si);
+            indices.reserve((size_t)std::max(0, bottle.size() - 1));
+            for (int si = 0; si + 1 < bottle.size(); ++si) {
+                if (canPlaceQuestionAt(bottle, si)) {
+                    indices.push_back(si);
+                }
+            }
+            if (indices.empty()) continue;
+
             for (size_t i = 0; i < indices.size(); ++i) {
                 size_t j = (size_t)rng.irange((int)i, (int)indices.size() - 1);
                 std::swap(indices[i], indices[j]);
             }
 
             int requested = (bi < perBottleRequested.size()) ? perBottleRequested[bi] : 0;
-            int take = std::min(requested, eligible);
+            int take = std::min(requested, (int)indices.size());
             for (int i = 0; i < take; ++i) {
                 bottle.slots[indices[i]].hidden = true;
             }
             placed += take;
 
-            for (int i = take; i < eligible; ++i) {
+            for (int i = take; i < (int)indices.size(); ++i) {
                 leftovers.emplace_back((int)bi, indices[i]);
             }
         }
