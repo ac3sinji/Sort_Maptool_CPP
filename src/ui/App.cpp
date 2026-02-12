@@ -287,7 +287,15 @@ namespace ws {
                 if (questionMaxPerBottle > 0) {
                     perBottleCapacity = std::min(perBottleCapacity, questionMaxPerBottle);
                 }
-                capacity += perBottleCapacity;
+                for (int si = 0; si < perBottleCapacity; ++si) {
+                    const int topIndex = (int)b.slots.size() - 1;
+                    const bool blockedByTopSameColor =
+                        (si + 1 == topIndex) && (si >= 0) && (si + 1 < (int)b.slots.size()) &&
+                        b.slots[si].c == b.slots[si + 1].c;
+                    if (!blockedByTopSameColor) {
+                        ++capacity;
+                    }
+                }
             }
             return capacity;
             };
@@ -319,6 +327,7 @@ namespace ws {
             ImGui::TextDisabled("Auto template preview has no hidden-slot capacity with current settings.");
         }
         ImGui::Text("Question capacity: per bottle <= min(slots-1, %d), map total <= %d", questionMaxPerBottle, globalQuestionCapacity);
+        ImGui::TextDisabled("Rule: if question is placed right below the top filled slot, same color as that top slot is not allowed.");
         if (questionCount > globalQuestionCapacity) {
             ImGui::TextColored(ImVec4(1, 0.4f, 0.4f, 1), "Question count %d exceeds allowed map capacity %d.", questionCount, globalQuestionCapacity);
         }
