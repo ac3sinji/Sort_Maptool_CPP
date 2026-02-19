@@ -5,6 +5,8 @@
 #include "backends/imgui_impl_sdl2.h"
 #include "backends/imgui_impl_sdlrenderer2.h"
 #include <algorithm> // for std::clamp
+#include <array>
+#include <cstdio>
 #include <filesystem> // for font path existence check
 #include <cstdint>
 #include <string>
@@ -730,7 +732,11 @@ namespace ws {
         }
 
         ImGui::Separator();
-        ImGui::InputText("Save CSV", savePath.data(), 256);
+        std::array<char, 256> savePathBuf{};
+        std::snprintf(savePathBuf.data(), savePathBuf.size(), "%s", savePath.c_str());
+        if (ImGui::InputText("Save CSV", savePathBuf.data(), savePathBuf.size())) {
+            savePath = savePathBuf.data();
+        }
         if (ImGui::Button("Save")) {
             // append indices continuing from existing file if present
             auto rowsExisting = CsvIO::load(savePath);
@@ -743,7 +749,11 @@ namespace ws {
             CsvIO::save(savePath, rows, true);
         }
 
-        ImGui::InputText("Load CSV", loadPath.data(), 256);
+        std::array<char, 256> loadPathBuf{};
+        std::snprintf(loadPathBuf.data(), loadPathBuf.size(), "%s", loadPath.c_str());
+        if (ImGui::InputText("Load CSV", loadPathBuf.data(), loadPathBuf.size())) {
+            loadPath = loadPathBuf.data();
+        }
         if (ImGui::Button("Load")) {
             generated.clear(); currentIndex = -1; viewIndexInput = 1;
             auto rows = CsvIO::load(loadPath);
